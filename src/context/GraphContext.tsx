@@ -20,6 +20,7 @@ interface GraphContextProps {
   stepExecution: () => void;
   setExecutionSpeed: (speed: number) => void;
   loadPreset: (presetName: string) => void;
+  setGraphData: (nodes: Node[], connections: Connection[]) => void;
 }
 
 const GraphContext = createContext<GraphContextProps | undefined>(undefined);
@@ -269,6 +270,13 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setConnections(preset.connections);
       setError(null);
     }
+  };
+
+  const setGraphData = (newNodes: Node[], newConnections: Connection[]) => {
+    stopExecution();
+    setNodes(newNodes);
+    setConnections(newConnections);
+    setError(null);
   };
 
   // Core Simulation Interpreter Step Evaluator
@@ -532,7 +540,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       stopExecution,
       stepExecution,
       setExecutionSpeed,
-      loadPreset
+      loadPreset,
+      setGraphData
     }}>
       {children}
     </GraphContext.Provider>

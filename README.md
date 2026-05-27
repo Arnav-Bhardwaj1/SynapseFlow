@@ -1,12 +1,8 @@
 # SynapseFlow — Visual AST Logic Compiler & Interpreter
 
-SynapseFlow is a high-performance, visually immersive interactive IDE designed for constructing, compiling, and debugging algorithmic workflows inside a node-graph workspace. Built from scratch in **React**, **TypeScript**, and **Tailwind CSS v4 (Stable)**, it stands as a premium showcase of graph theoretical systems, custom vector math operations, and dynamic code compilers.
+SynapseFlow is a high-performance, immersive and interactive IDE designed for constructing, compiling, and debugging algorithmic workflows inside a node-graph workspace. It stands as a premium showcase of graph theoretical systems, custom vector math operations, and dynamic code compilers.
 
----
-
-## 🚀 Key Engineering & Interview Highlights
-
-### 1. Graph Data Layer & KAHN's Topological Sort
+### 1. Graph Data Layer & Kahn's Topological Sort
 *   **Logical Execution Architecture:** Translates visual node diagrams into a directed acyclic graph (DAG) system.
 *   **Cycle Detection:** Executes Kahn's Algorithm on every connection change to evaluate node in-degrees and prevent infinite simulation execution loops.
 *   **Topological Execution Queue:** Schedules step-by-step logic sequences by establishing a correct topological ordering of node blocks.
@@ -47,16 +43,6 @@ graph TD
 *   **`src/utils/graphAlgorithms.ts`**: Core graph mathematical formulations (Kahn's Sort, real-time procedural code synthesizer compiler).
 *   **`src/context/GraphContext.tsx`**: Unified react state hub orchestrating simulation triggers, step advances, error validations, and preset loaders.
 *   **`src/components/`**: Clean, functional modular components rendering palettes, canvases, control panels, syntax editors, registers, and shells.
-
----
-
-## 💻 Tech Stack & Design Aesthetics
-
-*   **Framework**: React (TypeScript) + Vite
-*   **Styling**: Tailwind CSS v4 (Stable, CSS-first configurations)
-*   **Aesthetic Theme**: Space-dark cyberpunk glassmorphism panels, glowing neon ports, custom Outfit and Fira Code fonts, fluid transitions, and performance optimized at 60fps.
-
----
 
 ## 🏃‍♂️ Quick Start Setup
 

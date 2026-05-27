@@ -5,6 +5,7 @@ import { GraphCanvas } from './components/GraphCanvas';
 import { CodeSynthesizer } from './components/CodeSynthesizer';
 import { ConsoleTerminal } from './components/ConsoleTerminal';
 import { ScopeInspector } from './components/ScopeInspector';
+import { AiAssistant } from './components/AiAssistant';
 
 function App() {
   return (
@@ -15,6 +16,9 @@ function App() {
 
         {/* 2. Middle Interactive Graph Workspace Grid */}
         <div className="flex-1 flex min-h-0 relative">
+          {/* AI Copilot Prompt Panel */}
+          <AiAssistant />
+
           {/* Node Palette block drawer */}
           <NodePalette />
 
