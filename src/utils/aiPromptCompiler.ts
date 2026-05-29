@@ -1,4 +1,4 @@
-import type { NodeType, Node, Connection } from '../types/graph';
+import type { NodeType, Node } from '../types/graph';
 
 export interface PromptSpec {
   nodes: { type: NodeType; label: string; data: Node['data']; key: string }[];

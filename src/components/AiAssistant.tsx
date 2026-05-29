@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useGraph } from '../context/GraphContext';
 import { compileAiPrompt } from '../utils/aiPromptCompiler';
 import { computeAutoLayout } from '../utils/aiLayoutEngine';
-import type { Node, Connection, Port, NodeType } from '../types/graph';
-import { Sparkles, Terminal, ArrowRight, Play, Compass, RefreshCw } from 'lucide-react';
+import type { Node, Connection, Port } from '../types/graph';
+import { Sparkles, Terminal, ArrowRight, Compass, RefreshCw } from 'lucide-react';
 
 interface PresetPrompt {
   label: string;
@@ -63,15 +63,7 @@ export const AiAssistant: React.FC = () => {
     // 3. Compute Auto-Layout coordinate spaces mathematically
     const layoutCoords = computeAutoLayout(
       spec.nodes,
-      spec.connections.map(c => ({
-        id: '',
-        fromNodeId: '',
-        fromPortId: '',
-        toNodeId: '',
-        toPortId: '',
-        fromKey: c.fromKey,
-        toKey: c.toKey
-      } as any))
+      spec.connections
     );
 
     // 4. Construct complete, functional Node models

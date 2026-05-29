@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useGraph } from '../context/GraphContext';
 import type { Node, Port } from '../types/graph';
 import { X, Cpu, Settings, HelpCircle } from 'lucide-react';
+import { CollaboratorCursors } from './CollaboratorCursors';
 
 interface DraggingConnection {
   fromNodeId: string;
@@ -267,6 +268,9 @@ export const GraphCanvas: React.FC = () => {
 
           {/* Interactive HTML Node Cards Layer */}
           <div className="absolute inset-0 pointer-events-none">
+            {/* Remote Multiplayer Pointers */}
+            <CollaboratorCursors />
+
             {nodes.map(node => {
               const isActiveNode = executionState.currentNodeId === node.id;
               

@@ -1,4 +1,11 @@
-import type { Node, Connection } from '../types/graph';
+export interface LayoutNode {
+  key: string;
+}
+
+export interface LayoutConnection {
+  fromKey: string;
+  toKey: string;
+}
 
 export interface LayoutCoords {
   x: number;
@@ -10,14 +17,14 @@ export interface LayoutCoords {
  * Positions nodes along horizontal and vertical columns based on topological rank depths to avoid visual overlaps.
  */
 export function computeAutoLayout(
-  nodes: Omit<Node, 'x' | 'y'>[],
-  connections: Omit<Connection, 'id'>[],
+  nodes: LayoutNode[],
+  connections: LayoutConnection[],
   startX: number = 80,
   startY: number = 80,
   colWidth: number = 280,
   rowHeight: number = 160
 ): Record<string, LayoutCoords> {
-  const nodeIds = nodes.map(n => n.key || n.id);
+  const nodeIds = nodes.map(n => n.key);
   const ranks: Record<string, number> = {};
   const adjList: Record<string, string[]> = {};
   const inDegree: Record<string, number> = {};
@@ -31,8 +38,8 @@ export function computeAutoLayout(
 
   // Build Adjacency List & compute in-degrees
   connections.forEach(conn => {
-    const from = conn.fromKey || conn.fromNodeId;
-    const to = conn.toKey || conn.toNodeId;
+    const from = conn.fromKey;
+    const to = conn.toKey;
     if (adjList[from] && adjList[to]) {
       adjList[from].push(to);
       inDegree[to]++;
