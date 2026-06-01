@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { GraphProvider, useGraph } from './context/GraphContext';
 import { MultiplayerProvider, useMultiplayer } from './context/MultiplayerContext';
 import { useMultiplayerSimulator } from './utils/multiplayerSimulator';
@@ -9,10 +10,12 @@ import { ConsoleTerminal } from './components/ConsoleTerminal';
 import { ScopeInspector } from './components/ScopeInspector';
 import { AiAssistant } from './components/AiAssistant';
 import { MultiplayerSidebar } from './components/MultiplayerSidebar';
+import { GraphAnalyticsLab } from './components/GraphAnalyticsLab';
 
 function AppWorkspace() {
   const graph = useGraph();
   const multiplayer = useMultiplayer();
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -20,7 +23,10 @@ function AppWorkspace() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100">
       {/* 1. Top Cyber-Control Header Bar */}
-      <Header />
+      <Header 
+        onToggleAnalytics={() => setIsAnalyticsOpen(prev => !prev)} 
+        isAnalyticsActive={isAnalyticsOpen} 
+      />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
       <div className="flex-1 flex min-h-0 relative">
@@ -48,6 +54,8 @@ function AppWorkspace() {
         {/* Core scope memory state registers */}
         <ScopeInspector />
       </div>
+      {/* Graph Analytics & Optimization Lab Slide-over */}
+      <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />
     </div>
   );
 }

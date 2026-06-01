@@ -1,8 +1,13 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain } from 'lucide-react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onToggleAnalytics: () => void;
+  isAnalyticsActive: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onToggleAnalytics, isAnalyticsActive }) => {
   const {
     executionState,
     startExecution,
@@ -114,12 +119,27 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Debugger Active Badge */}
-      <div className="hidden lg:flex items-center gap-3 bg-slate-950/80 border border-cyber-border/40 py-1.5 px-3 rounded-full">
-        <span className={`h-2.5 w-2.5 rounded-full ${isRunning ? (isPaused ? 'bg-neon-yellow animate-pulse' : 'bg-neon-green animate-ping') : 'bg-slate-600'}`}></span>
-        <span className="text-xs font-mono text-slate-300">
-          {isRunning ? (isPaused ? 'SIMULATION PAUSED' : 'INTERPRETER ACTIVE') : 'ENGINE READY'}
-        </span>
+      <div className="flex items-center gap-3">
+        {/* Analytics Lab Toggle Button */}
+        <button
+          onClick={onToggleAnalytics}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isAnalyticsActive
+              ? 'bg-neon-purple/20 border-neon-purple text-neon-purple shadow-lg shadow-purple-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-neon-purple/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <Brain className={`h-4 w-4 ${isAnalyticsActive ? 'animate-pulse text-neon-purple' : 'text-slate-400'}`} />
+          <span>Analytics Lab</span>
+        </button>
+
+        {/* Debugger Active Badge */}
+        <div className="hidden lg:flex items-center gap-3 bg-slate-950/80 border border-cyber-border/40 py-1.5 px-3 rounded-full">
+          <span className={`h-2.5 w-2.5 rounded-full ${isRunning ? (isPaused ? 'bg-neon-yellow animate-pulse' : 'bg-neon-green animate-ping') : 'bg-slate-600'}`}></span>
+          <span className="text-xs font-mono text-slate-300">
+            {isRunning ? (isPaused ? 'SIMULATION PAUSED' : 'INTERPRETER ACTIVE') : 'ENGINE READY'}
+          </span>
+        </div>
       </div>
     </header>
   );
