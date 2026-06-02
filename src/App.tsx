@@ -11,11 +11,13 @@ import { ScopeInspector } from './components/ScopeInspector';
 import { AiAssistant } from './components/AiAssistant';
 import { MultiplayerSidebar } from './components/MultiplayerSidebar';
 import { GraphAnalyticsLab } from './components/GraphAnalyticsLab';
+import { ParallelExecutionProfiler } from './components/ParallelExecutionProfiler';
 
 function AppWorkspace() {
   const graph = useGraph();
   const multiplayer = useMultiplayer();
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [isProfilerOpen, setIsProfilerOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -26,6 +28,8 @@ function AppWorkspace() {
       <Header 
         onToggleAnalytics={() => setIsAnalyticsOpen(prev => !prev)} 
         isAnalyticsActive={isAnalyticsOpen} 
+        onToggleProfiler={() => setIsProfilerOpen(prev => !prev)}
+        isProfilerActive={isProfilerOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -56,6 +60,9 @@ function AppWorkspace() {
       </div>
       {/* Graph Analytics & Optimization Lab Slide-over */}
       <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />
+
+      {/* Parallel Execution Profiler Slide-over */}
+      <ParallelExecutionProfiler isOpen={isProfilerOpen} onClose={() => setIsProfilerOpen(false)} />
     </div>
   );
 }

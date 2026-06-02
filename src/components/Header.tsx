@@ -1,13 +1,20 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
   isAnalyticsActive: boolean;
+  onToggleProfiler: () => void;
+  isProfilerActive: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleAnalytics, isAnalyticsActive }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onToggleAnalytics, 
+  isAnalyticsActive,
+  onToggleProfiler,
+  isProfilerActive
+}) => {
   const {
     executionState,
     startExecution,
@@ -120,6 +127,19 @@ export const Header: React.FC<HeaderProps> = ({ onToggleAnalytics, isAnalyticsAc
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Parallel Profiler Toggle Button */}
+        <button
+          onClick={onToggleProfiler}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isProfilerActive
+              ? 'bg-neon-cyan/20 border-neon-cyan text-neon-cyan shadow-lg shadow-cyan-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-neon-cyan/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <Cpu className={`h-4 w-4 ${isProfilerActive ? 'animate-pulse text-neon-cyan' : 'text-slate-400'}`} />
+          <span>Parallel Profiler</span>
+        </button>
+
         {/* Analytics Lab Toggle Button */}
         <button
           onClick={onToggleAnalytics}
