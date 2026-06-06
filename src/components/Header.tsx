@@ -1,19 +1,23 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
   isAnalyticsActive: boolean;
   onToggleProfiler: () => void;
   isProfilerActive: boolean;
+  onToggleDebugger: () => void;
+  isDebuggerActive: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
   onToggleAnalytics, 
   isAnalyticsActive,
   onToggleProfiler,
-  isProfilerActive
+  isProfilerActive,
+  onToggleDebugger,
+  isDebuggerActive
 }) => {
   const {
     executionState,
@@ -127,6 +131,19 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Time-Travel Debugger Toggle Button */}
+        <button
+          onClick={onToggleDebugger}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isDebuggerActive
+              ? 'bg-neon-pink/20 border-neon-pink text-neon-pink shadow-lg shadow-pink-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-neon-pink/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <Clock className={`h-4 w-4 ${isDebuggerActive ? 'animate-pulse text-neon-pink' : 'text-slate-400'}`} />
+          <span>Debugger Studio</span>
+        </button>
+
         {/* Parallel Profiler Toggle Button */}
         <button
           onClick={onToggleProfiler}

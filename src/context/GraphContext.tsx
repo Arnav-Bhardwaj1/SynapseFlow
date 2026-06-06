@@ -21,6 +21,7 @@ interface GraphContextProps {
   setExecutionSpeed: (speed: number) => void;
   loadPreset: (presetName: string) => void;
   setGraphData: (nodes: Node[], connections: Connection[]) => void;
+  setCurrentNodeId: (nodeId: string | null) => void;
 }
 
 const GraphContext = createContext<GraphContextProps | undefined>(undefined);
@@ -522,6 +523,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setExecutionState(prev => ({ ...prev, speed }));
   };
 
+  const setCurrentNodeId = (nodeId: string | null) => {
+    setExecutionState(prev => ({ ...prev, currentNodeId: nodeId }));
+  };
+
   return (
     <GraphContext.Provider value={{
       nodes,
@@ -541,7 +546,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       stepExecution,
       setExecutionSpeed,
       loadPreset,
-      setGraphData
+      setGraphData,
+      setCurrentNodeId
     }}>
       {children}
     </GraphContext.Provider>

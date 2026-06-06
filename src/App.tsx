@@ -12,12 +12,14 @@ import { AiAssistant } from './components/AiAssistant';
 import { MultiplayerSidebar } from './components/MultiplayerSidebar';
 import { GraphAnalyticsLab } from './components/GraphAnalyticsLab';
 import { ParallelExecutionProfiler } from './components/ParallelExecutionProfiler';
+import { TimeTravelDebugger } from './components/TimeTravelDebugger';
 
 function AppWorkspace() {
   const graph = useGraph();
   const multiplayer = useMultiplayer();
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [isProfilerOpen, setIsProfilerOpen] = useState(false);
+  const [isDebuggerOpen, setIsDebuggerOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -30,6 +32,8 @@ function AppWorkspace() {
         isAnalyticsActive={isAnalyticsOpen} 
         onToggleProfiler={() => setIsProfilerOpen(prev => !prev)}
         isProfilerActive={isProfilerOpen}
+        onToggleDebugger={() => setIsDebuggerOpen(prev => !prev)}
+        isDebuggerActive={isDebuggerOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -63,6 +67,9 @@ function AppWorkspace() {
 
       {/* Parallel Execution Profiler Slide-over */}
       <ParallelExecutionProfiler isOpen={isProfilerOpen} onClose={() => setIsProfilerOpen(false)} />
+
+      {/* Time-Travel Debugger & Replay Studio Slide-over */}
+      <TimeTravelDebugger isOpen={isDebuggerOpen} onClose={() => setIsDebuggerOpen(false)} />
     </div>
   );
 }
