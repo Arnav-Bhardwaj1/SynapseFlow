@@ -158,6 +158,38 @@ export function synthesizeCode(nodes: Node[], connections: Connection[]): string
         codeLines.push(`  console.log(${JSON.stringify(msg)}, ${val});`);
         break;
       }
+
+      case 'custom': {
+        codeLines.push(`  // Custom Script Block: ${node.label}`);
+        const inputPortMappings = node.inputs.map(p => `${p.id}: ${getInputValue(p.id, null)}`).join(', ');
+        
+        node.outputs.forEach(p => {
+          codeLines.push(`  let res_${node.id.substring(0, 4)}_${p.id} = null;`);
+        });
+        
+        codeLines.push(`  (() => {`);
+        codeLines.push(`    const inputs = { ${inputPortMappings} };`);
+        codeLines.push(`    const outputs = {`);
+        codeLines.push(`      set: (id, val) => {`);
+        node.outputs.forEach(p => {
+          codeLines.push(`        if (id === '${p.id}') res_${node.id.substring(0, 4)}_${p.id} = val;`);
+        });
+        codeLines.push(`      }`);
+        codeLines.push(`    };`);
+        
+        const userCodeLines = (node.data.code || '')
+          .split('\n')
+          .map(line => `    ${line}`)
+          .join('\n');
+        codeLines.push(userCodeLines);
+        codeLines.push(`  })();`);
+        
+        node.outputs.forEach(p => {
+          const varName = `res_${node.id.substring(0, 4)}_${p.id}`;
+          portToVar[`${node.id}-${p.id}`] = varName;
+        });
+        break;
+      }
     }
   });
 

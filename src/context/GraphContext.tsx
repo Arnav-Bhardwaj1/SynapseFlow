@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Node, Connection, ExecutionState, ExecutionLog, PresetTemplate, NodeType, Port } from '../types/graph';
+import type { Node, Connection, ExecutionState, ExecutionLog, PresetTemplate, NodeType, Port, CustomNodeTemplate } from '../types/graph';
 import { topologicalSort } from '../utils/graphAlgorithms';
 
 interface GraphContextProps {
@@ -7,7 +7,8 @@ interface GraphContextProps {
   connections: Connection[];
   executionState: ExecutionState;
   error: string | null;
-  addNode: (type: NodeType, x: number, y: number) => void;
+  customTemplates: CustomNodeTemplate[];
+  addNode: (type: NodeType, x: number, y: number, customTemplateId?: string) => void;
   deleteNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<Node['data']>) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
@@ -22,6 +23,8 @@ interface GraphContextProps {
   loadPreset: (presetName: string) => void;
   setGraphData: (nodes: Node[], connections: Connection[]) => void;
   setCurrentNodeId: (nodeId: string | null) => void;
+  createCustomTemplate: (template: Omit<CustomNodeTemplate, 'id'>) => void;
+  deleteCustomTemplate: (id: string) => void;
 }
 
 const GraphContext = createContext<GraphContextProps | undefined>(undefined);
@@ -118,6 +121,18 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [connections, setConnections] = useState<Connection[]>(PRESETS.fizzbuzz.connections);
   const [executionState, setExecutionState] = useState<ExecutionState>(initialExecutionState);
   const [error, setError] = useState<string | null>(null);
+  const [customTemplates, setCustomTemplates] = useState<CustomNodeTemplate[]>(() => {
+    try {
+      const stored = localStorage.getItem('synapse_custom_templates');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('synapse_custom_templates', JSON.stringify(customTemplates));
+  }, [customTemplates]);
 
   // References for handling async timeout simulation loops
   const runTimerRef = useRef<any>(null);
@@ -146,7 +161,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [nodes, connections]);
 
   // Node Actions
-  const addNode = (type: NodeType, x: number, y: number) => {
+  const addNode = (type: NodeType, x: number, y: number, customTemplateId?: string) => {
     const id = `${type}-${generateId()}`;
     let inputs: Port[] = [];
     let outputs: Port[] = [];
@@ -187,6 +202,25 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         inputs = [{ id: 'input_val', name: 'Log Value', type: 'any' }];
         data = { logPrefix: 'Printed Output:' };
         break;
+      case 'custom': {
+        const tmpl = customTemplates.find(t => t.id === customTemplateId);
+        if (tmpl) {
+          label = tmpl.label;
+          inputs = tmpl.inputs.map(p => ({ ...p }));
+          outputs = tmpl.outputs.map(p => ({ ...p }));
+          data = {
+            customNodeId: tmpl.id,
+            code: tmpl.code,
+            customColor: tmpl.color,
+            customIcon: tmpl.iconName
+          };
+        } else {
+          label = 'Custom Block';
+          outputs = [{ id: 'out', name: 'out', type: 'any' }];
+          data = { code: 'outputs.set("out", 0);' };
+        }
+        break;
+      }
     }
 
     const newNode: Node = { id, type, label, x, y, inputs, outputs, data };
@@ -385,6 +419,56 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
         break;
       }
+
+      case 'custom': {
+        const inputsObj: Record<string, any> = {};
+        node.inputs.forEach(p => {
+          inputsObj[p.id] = getInputValue(p.id, null);
+        });
+
+        const outputsMap = new Map<string, any>();
+        const outputsObj = {
+          set: (portId: string, value: any) => {
+            outputsMap.set(portId, value);
+          }
+        };
+
+        const codeStr = node.data.code || '';
+        let execError: string | null = null;
+
+        try {
+          const runScript = new Function('inputs', 'outputs', codeStr);
+          runScript(inputsObj, outputsObj);
+
+          node.outputs.forEach(p => {
+            const outVal = outputsMap.get(p.id);
+            updatedVars[`${node.id}-${p.id}`] = outVal !== undefined ? outVal : null;
+          });
+        } catch (err: any) {
+          execError = err.message || String(err);
+          node.outputs.forEach(p => {
+            updatedVars[`${node.id}-${p.id}`] = null;
+          });
+        }
+
+        if (execError) {
+          logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            nodeId: node.id,
+            message: `❌ Custom block "${node.label}" execution error: ${execError}`,
+            type: 'error'
+          };
+        } else {
+          const outputsJson = JSON.stringify(Object.fromEntries(outputsMap));
+          logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            nodeId: node.id,
+            message: `🛠️ Evaluated custom block "${node.label}" successfully. Outputs: ${outputsJson}`,
+            type: 'success'
+          };
+        }
+        break;
+      }
     }
 
     return { evaluatedVars: updatedVars, log: logEntry };
@@ -527,12 +611,32 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setExecutionState(prev => ({ ...prev, currentNodeId: nodeId }));
   };
 
+  const createCustomTemplate = (template: Omit<CustomNodeTemplate, 'id'>) => {
+    const newTmpl: CustomNodeTemplate = {
+      ...template,
+      id: `tmpl-${generateId()}`
+    };
+    setCustomTemplates(prev => [...prev, newTmpl]);
+  };
+
+  const deleteCustomTemplate = (id: string) => {
+    setCustomTemplates(prev => prev.filter(t => t.id !== id));
+    // Purge instances of this template
+    setNodes(prev => prev.filter(n => n.data.customNodeId !== id));
+    setConnections(prev => prev.filter(c => {
+      const fromNode = nodesRef.current.find(n => n.id === c.fromNodeId);
+      const toNode = nodesRef.current.find(n => n.id === c.toNodeId);
+      return fromNode?.data?.customNodeId !== id && toNode?.data?.customNodeId !== id;
+    }));
+  };
+
   return (
     <GraphContext.Provider value={{
       nodes,
       connections,
       executionState,
       error,
+      customTemplates,
       addNode,
       deleteNode,
       updateNodeData,
@@ -547,7 +651,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setExecutionSpeed,
       loadPreset,
       setGraphData,
-      setCurrentNodeId
+      setCurrentNodeId,
+      createCustomTemplate,
+      deleteCustomTemplate
     }}>
       {children}
     </GraphContext.Provider>

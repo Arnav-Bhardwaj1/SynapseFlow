@@ -1,9 +1,22 @@
-export type NodeType = 'input' | 'variable' | 'operator' | 'conditional' | 'logger';
+export type NodeType = 'input' | 'variable' | 'operator' | 'conditional' | 'logger' | 'custom';
 
 export interface Port {
   id: string;
   name: string;
   type: 'number' | 'string' | 'boolean' | 'any';
+}
+
+export interface CustomNodeTemplate {
+  id: string;
+  label: string;
+  description: string;
+  code: string;
+  inputs: Port[];
+  outputs: Port[];
+  color: string;       // Palette gradient classes
+  borderColor: string; // Canvas card border classes
+  badgeColor: string;  // Label badge classes
+  iconName: string;    // Lucide icon name string
 }
 
 export interface Node {
@@ -18,6 +31,10 @@ export interface Node {
     value?: any;          // Used by input / variable nodes
     operator?: string;     // Used by operator (+, -, *, /, >, <, ===)
     logPrefix?: string;    // Used by logger nodes
+    customNodeId?: string; // Used by custom nodes to map template
+    code?: string;        // Contains custom JS script body
+    customColor?: string; // Color config for custom nodes
+    customIcon?: string;  // Icon config for custom nodes
     [key: string]: any;
   };
 }

@@ -33,7 +33,8 @@ const NODE_LATENCIES: Record<string, number> = {
   variable: 5,
   operator: 15,
   conditional: 25,
-  logger: 20
+  logger: 20,
+  custom: 30
 };
 
 interface Breakpoint {
@@ -330,6 +331,48 @@ export const TimeTravelDebugger: React.FC<TimeTravelDebuggerProps> = ({ isOpen, 
           const val = getInputValue('input_val', 'undefined');
           stepMessage = `Log flushed to console: "${prefix} ${JSON.stringify(val)}"`;
           logType = 'success';
+          break;
+        }
+
+        case 'custom': {
+          const inputsObj: Record<string, any> = {};
+          node.inputs.forEach(p => {
+            inputsObj[p.id] = getInputValue(p.id, null);
+          });
+
+          const outputsMap = new Map<string, any>();
+          const outputsObj = {
+            set: (portId: string, val: any) => {
+              outputsMap.set(portId, val);
+            }
+          };
+
+          const userCode = node.data.code || '';
+          let executionError: string | null = null;
+          try {
+            const func = new Function('inputs', 'outputs', userCode);
+            func(inputsObj, outputsObj);
+
+            node.outputs.forEach(p => {
+              const portKey = `${node.id}-${p.id}`;
+              const ov = overrides.find(o => o.portKey === portKey);
+              currentVars[portKey] = ov ? ov.value : (outputsMap.get(p.id) !== undefined ? outputsMap.get(p.id) : null);
+            });
+          } catch (e: any) {
+            executionError = e.message || String(e);
+            node.outputs.forEach(p => {
+              currentVars[`${node.id}-${p.id}`] = null;
+            });
+          }
+
+          if (executionError) {
+            stepMessage = `Script execution error: ${executionError}`;
+            logType = 'error';
+          } else {
+            const outputsJson = JSON.stringify(Object.fromEntries(outputsMap));
+            stepMessage = `Evaluated custom script successfully. Outputs: ${outputsJson}`;
+            logType = 'success';
+          }
           break;
         }
       }

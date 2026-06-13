@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useGraph } from '../context/GraphContext';
 import type { Node, Port } from '../types/graph';
-import { X, Cpu, Settings, HelpCircle } from 'lucide-react';
+import { X, Cpu, Settings, HelpCircle, Sparkles, Zap, Activity, Terminal, Code2 } from 'lucide-react';
 import { CollaboratorCursors } from './CollaboratorCursors';
 
 interface DraggingConnection {
@@ -13,6 +13,21 @@ interface DraggingConnection {
   currentY: number;
 }
 
+const mapNodeIcon = (type: string, customIconName?: string) => {
+  if (type === 'custom') {
+    switch (customIconName) {
+      case 'Sparkles': return <Sparkles className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      case 'Zap': return <Zap className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      case 'Cpu': return <Cpu className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      case 'Settings': return <Settings className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      case 'Activity': return <Activity className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      case 'Terminal': return <Terminal className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+      default: return <Code2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+    }
+  }
+  return <Cpu className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
+};
+
 export const GraphCanvas: React.FC = () => {
   const {
     nodes,
@@ -22,7 +37,8 @@ export const GraphCanvas: React.FC = () => {
     deleteConnection,
     deleteNode,
     updateNodePosition,
-    updateNodeData
+    updateNodeData,
+    customTemplates
   } = useGraph();
 
   // Selected Node for editing attributes in context
@@ -295,6 +311,11 @@ export const GraphCanvas: React.FC = () => {
                 typeStyles = 'border-emerald-500/30';
                 badgeText = 'CONSOLE';
                 badgeColor = 'bg-emerald-500/20 text-emerald-300';
+              } else if (node.type === 'custom') {
+                const tmpl = customTemplates.find(t => t.id === node.data.customNodeId);
+                typeStyles = tmpl ? tmpl.borderColor : 'border-indigo-500/30';
+                badgeText = 'CUSTOM';
+                badgeColor = tmpl ? tmpl.badgeColor : 'bg-indigo-500/20 text-indigo-300';
               }
 
               return (
@@ -323,7 +344,7 @@ export const GraphCanvas: React.FC = () => {
                     className="cursor-grab active:cursor-grabbing px-3 py-2 border-b border-cyber-border bg-slate-900/60 rounded-t-lg flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Cpu className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      {mapNodeIcon(node.type, node.data.customIcon)}
                       <span className="text-xs font-bold text-slate-100 truncate">{node.label}</span>
                     </div>
                     <button
@@ -465,6 +486,18 @@ export const GraphCanvas: React.FC = () => {
                   value={selectedNode.data.logPrefix || ''}
                   onChange={(e) => updateNodeData(selectedNode.id, { logPrefix: e.target.value })}
                   className="w-full text-xs font-mono bg-slate-950 border border-slate-800 text-slate-200 px-2.5 py-1.5 rounded-md focus:outline-hidden focus:border-neon-purple"
+                />
+              </div>
+            )}
+
+            {selectedNode.type === 'custom' && (
+              <div>
+                <label className="text-[10px] font-mono text-slate-400 block mb-1">NODE SCRIPT BODY (JS)</label>
+                <textarea
+                  value={selectedNode.data.code || ''}
+                  onChange={(e) => updateNodeData(selectedNode.id, { code: e.target.value })}
+                  rows={8}
+                  className="w-full text-[10.5px] font-mono bg-slate-950 border border-slate-800 text-slate-200 p-2 rounded-md focus:outline-hidden focus:border-neon-purple resize-none leading-normal"
                 />
               </div>
             )}

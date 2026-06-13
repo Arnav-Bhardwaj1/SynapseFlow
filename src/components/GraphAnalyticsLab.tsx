@@ -28,7 +28,8 @@ const NODE_LATENCIES: Record<string, number> = {
   variable: 5,
   operator: 15,
   conditional: 25,
-  logger: 20
+  logger: 20,
+  custom: 30
 };
 
 interface Recommendation {

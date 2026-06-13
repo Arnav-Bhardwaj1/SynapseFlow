@@ -25,7 +25,8 @@ const NODE_LATENCIES: Record<string, number> = {
   variable: 5,
   operator: 15,
   conditional: 25,
-  logger: 20
+  logger: 20,
+  custom: 30
 };
 
 interface ScheduledTask {
@@ -609,6 +610,7 @@ export const ParallelExecutionProfiler: React.FC<ParallelExecutionProfilerProps>
                     else if (task.type === 'operator') { barColor = 'rgba(16, 185, 129, 0.15)'; strokeColor = '#10b981'; }
                     else if (task.type === 'conditional') { barColor = 'rgba(245, 158, 11, 0.15)'; strokeColor = '#f59e0b'; }
                     else if (task.type === 'logger') { barColor = 'rgba(236, 72, 153, 0.15)'; strokeColor = '#ec4899'; }
+                    else if (task.type === 'custom') { barColor = 'rgba(99, 102, 241, 0.15)'; strokeColor = '#6366f1'; }
 
                     if (isHovered) {
                       barColor = strokeColor + '50'; // Increase opacity on hover
