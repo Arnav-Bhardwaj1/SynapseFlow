@@ -38,7 +38,9 @@ export const GraphCanvas: React.FC = () => {
     deleteNode,
     updateNodePosition,
     updateNodeData,
-    customTemplates
+    customTemplates,
+    lastTestResults,
+    testCases
   } = useGraph();
 
   // Selected Node for editing attributes in context
@@ -318,6 +320,34 @@ export const GraphCanvas: React.FC = () => {
                 badgeColor = tmpl ? tmpl.badgeColor : 'bg-indigo-500/20 text-indigo-300';
               }
 
+              const nodeAssertions = testCases.flatMap(tc => tc.assertions.filter(a => a.nodeId === node.id));
+              const hasAssertions = nodeAssertions.length > 0;
+
+              const nodeAssertionResults = lastTestResults
+                ? lastTestResults.flatMap(r => r.assertionResults.filter(ar => {
+                    const tc = testCases.find(t => t.id === r.testCaseId);
+                    const ass = tc?.assertions.find(a => a.id === ar.assertionId);
+                    return ass?.nodeId === node.id;
+                  }))
+                : [];
+
+              const hasFailedAssert = nodeAssertionResults.some(r => !r.passed);
+
+              const isCovered = lastTestResults && lastTestResults.length > 0
+                ? lastTestResults.some(r => r.executedNodeIds.includes(node.id))
+                : true;
+
+              const showTestBadge = lastTestResults && lastTestResults.length > 0 && hasAssertions;
+              
+              const tooltipText = lastTestResults 
+                ? lastTestResults.flatMap(r => {
+                    const tc = testCases.find(t => t.id === r.testCaseId);
+                    return r.assertionResults
+                      .filter(ar => tc?.assertions.find(a => a.id === ar.assertionId)?.nodeId === node.id)
+                      .map(ar => `[${tc?.name}] ${ar.passed ? '✓ Passed' : `✗ Failed: ${ar.message}`}`);
+                  }).join('\n')
+                : '';
+
               return (
                 <div
                   key={node.id}
@@ -331,6 +361,14 @@ export const GraphCanvas: React.FC = () => {
                       ? 'border-neon-cyan ring-4 ring-cyan-500/20 animate-pulse'
                       : selectedNodeId === node.id
                       ? 'border-neon-purple shadow-[0_0_15px_rgba(139,92,246,0.3)]'
+                      : ''
+                  } ${
+                    lastTestResults && lastTestResults.length > 0 && !isCovered
+                      ? 'opacity-40 hover:opacity-100 transition-all duration-300'
+                      : ''
+                  } ${
+                    lastTestResults && lastTestResults.length > 0 && isCovered && hasAssertions
+                      ? (hasFailedAssert ? 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'border-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.2)]')
                       : ''
                   }`}
                   onClick={(e) => {
@@ -347,15 +385,27 @@ export const GraphCanvas: React.FC = () => {
                       {mapNodeIcon(node.type, node.data.customIcon)}
                       <span className="text-xs font-bold text-slate-100 truncate">{node.label}</span>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteNode(node.id);
-                      }}
-                      className="p-0.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-sm"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {showTestBadge && (
+                        <span 
+                          title={tooltipText}
+                          className={`text-[8px] font-bold font-mono px-1 rounded-sm cursor-help ${
+                            hasFailedAssert ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          }`}
+                        >
+                          {hasFailedAssert ? `✗ FAIL` : `✓ PASS`}
+                        </span>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNode(node.id);
+                        }}
+                        className="p-0.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-sm"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Body Ports Panel */}

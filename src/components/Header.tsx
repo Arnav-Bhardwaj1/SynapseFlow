@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -9,6 +9,8 @@ interface HeaderProps {
   isProfilerActive: boolean;
   onToggleDebugger: () => void;
   isDebuggerActive: boolean;
+  onToggleTestLab: () => void;
+  isTestLabActive: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -17,7 +19,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleProfiler,
   isProfilerActive,
   onToggleDebugger,
-  isDebuggerActive
+  isDebuggerActive,
+  onToggleTestLab,
+  isTestLabActive
 }) => {
   const {
     executionState,
@@ -168,6 +172,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Brain className={`h-4 w-4 ${isAnalyticsActive ? 'animate-pulse text-neon-purple' : 'text-slate-400'}`} />
           <span>Analytics Lab</span>
+        </button>
+
+        {/* Test Suite Lab Toggle Button */}
+        <button
+          onClick={onToggleTestLab}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isTestLabActive
+              ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-lg shadow-amber-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-amber-500/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <Beaker className={`h-4 w-4 ${isTestLabActive ? 'animate-pulse text-amber-400' : 'text-slate-400'}`} />
+          <span>Test Studio</span>
         </button>
 
         {/* Debugger Active Badge */}

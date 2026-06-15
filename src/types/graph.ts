@@ -70,3 +70,34 @@ export interface PresetTemplate {
   nodes: Node[];
   connections: Connection[];
 }
+
+export interface Assertion {
+  id: string;
+  nodeId: string;
+  portId: string;
+  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'is_type';
+  expectedValue: string;
+}
+
+export interface TestCase {
+  id: string;
+  name: string;
+  description: string;
+  inputs: Record<string, any>; // maps "nodeId-portId" to value
+  assertions: Assertion[];
+}
+
+export interface AssertionResult {
+  assertionId: string;
+  passed: boolean;
+  actualValue: any;
+  message: string;
+}
+
+export interface TestResult {
+  testCaseId: string;
+  passed: boolean;
+  assertionResults: AssertionResult[];
+  executedNodeIds: string[];
+  durationMs: number;
+}

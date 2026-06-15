@@ -13,6 +13,7 @@ import { MultiplayerSidebar } from './components/MultiplayerSidebar';
 import { GraphAnalyticsLab } from './components/GraphAnalyticsLab';
 import { ParallelExecutionProfiler } from './components/ParallelExecutionProfiler';
 import { TimeTravelDebugger } from './components/TimeTravelDebugger';
+import { TestSuiteLab } from './components/TestSuiteLab';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -20,6 +21,7 @@ function AppWorkspace() {
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [isProfilerOpen, setIsProfilerOpen] = useState(false);
   const [isDebuggerOpen, setIsDebuggerOpen] = useState(false);
+  const [isTestLabOpen, setIsTestLabOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -34,6 +36,8 @@ function AppWorkspace() {
         isProfilerActive={isProfilerOpen}
         onToggleDebugger={() => setIsDebuggerOpen(prev => !prev)}
         isDebuggerActive={isDebuggerOpen}
+        onToggleTestLab={() => setIsTestLabOpen(prev => !prev)}
+        isTestLabActive={isTestLabOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -70,6 +74,9 @@ function AppWorkspace() {
 
       {/* Time-Travel Debugger & Replay Studio Slide-over */}
       <TimeTravelDebugger isOpen={isDebuggerOpen} onClose={() => setIsDebuggerOpen(false)} />
+
+      {/* Test Suite Lab Slide-over */}
+      <TestSuiteLab isOpen={isTestLabOpen} onClose={() => setIsTestLabOpen(false)} />
     </div>
   );
 }

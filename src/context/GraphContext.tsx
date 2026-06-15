@@ -1,5 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Node, Connection, ExecutionState, ExecutionLog, PresetTemplate, NodeType, Port, CustomNodeTemplate } from '../types/graph';
+import type { 
+  Node, 
+  Connection, 
+  ExecutionState, 
+  ExecutionLog, 
+  PresetTemplate, 
+  NodeType, 
+  Port, 
+  CustomNodeTemplate,
+  TestCase,
+  Assertion,
+  TestResult
+} from '../types/graph';
 import { topologicalSort } from '../utils/graphAlgorithms';
 
 interface GraphContextProps {
@@ -8,6 +20,8 @@ interface GraphContextProps {
   executionState: ExecutionState;
   error: string | null;
   customTemplates: CustomNodeTemplate[];
+  testCases: TestCase[];
+  lastTestResults: TestResult[] | null;
   addNode: (type: NodeType, x: number, y: number, customTemplateId?: string) => void;
   deleteNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<Node['data']>) => void;
@@ -25,6 +39,13 @@ interface GraphContextProps {
   setCurrentNodeId: (nodeId: string | null) => void;
   createCustomTemplate: (template: Omit<CustomNodeTemplate, 'id'>) => void;
   deleteCustomTemplate: (id: string) => void;
+  addTestCase: (name: string, description?: string) => void;
+  deleteTestCase: (id: string) => void;
+  updateTestCase: (id: string, updates: Partial<TestCase>) => void;
+  addAssertion: (testCaseId: string, assertion: Omit<Assertion, 'id'>) => void;
+  deleteAssertion: (testCaseId: string, assertionId: string) => void;
+  runTestSuite: () => void;
+  clearTestResults: () => void;
 }
 
 const GraphContext = createContext<GraphContextProps | undefined>(undefined);
@@ -130,9 +151,24 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const [testCases, setTestCases] = useState<TestCase[]>(() => {
+    try {
+      const stored = localStorage.getItem('synapse_test_cases');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [lastTestResults, setLastTestResults] = useState<TestResult[] | null>(null);
+
   useEffect(() => {
     localStorage.setItem('synapse_custom_templates', JSON.stringify(customTemplates));
   }, [customTemplates]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_test_cases', JSON.stringify(testCases));
+  }, [testCases]);
 
   // References for handling async timeout simulation loops
   const runTimerRef = useRef<any>(null);
@@ -621,13 +657,238 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteCustomTemplate = (id: string) => {
     setCustomTemplates(prev => prev.filter(t => t.id !== id));
-    // Purge instances of this template
     setNodes(prev => prev.filter(n => n.data.customNodeId !== id));
     setConnections(prev => prev.filter(c => {
       const fromNode = nodesRef.current.find(n => n.id === c.fromNodeId);
       const toNode = nodesRef.current.find(n => n.id === c.toNodeId);
       return fromNode?.data?.customNodeId !== id && toNode?.data?.customNodeId !== id;
     }));
+  };
+
+  const addTestCase = (name: string, description: string = '') => {
+    const newCase: TestCase = {
+      id: `test-${generateId()}`,
+      name,
+      description,
+      inputs: {},
+      assertions: []
+    };
+    setTestCases(prev => [...prev, newCase]);
+  };
+
+  const deleteTestCase = (id: string) => {
+    setTestCases(prev => prev.filter(c => c.id !== id));
+  };
+
+  const updateTestCase = (id: string, updates: Partial<TestCase>) => {
+    setTestCases(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const addAssertion = (testCaseId: string, assertion: Omit<Assertion, 'id'>) => {
+    const newAssertion: Assertion = {
+      ...assertion,
+      id: `assert-${generateId()}`
+    };
+    setTestCases(prev => prev.map(c => {
+      if (c.id === testCaseId) {
+        return { ...c, assertions: [...c.assertions, newAssertion] };
+      }
+      return c;
+    }));
+  };
+
+  const deleteAssertion = (testCaseId: string, assertionId: string) => {
+    setTestCases(prev => prev.map(c => {
+      if (c.id === testCaseId) {
+        return { ...c, assertions: c.assertions.filter(a => a.id !== assertionId) };
+      }
+      return c;
+    }));
+  };
+
+  const clearTestResults = () => {
+    setLastTestResults(null);
+  };
+
+  const runTestSuite = () => {
+    const results: TestResult[] = [];
+    const { order, hasCycle } = topologicalSort(nodes, connections);
+
+    if (hasCycle || nodes.length === 0) {
+      setError("Cannot run test suite: cycle detected or graph is empty.");
+      return;
+    }
+
+    testCases.forEach(tc => {
+      const startTime = performance.now();
+      const currentVars: Record<string, any> = {};
+      const executedNodeIds: string[] = [];
+
+      const getInputValue = (nodeId: string, portId: string, fallback: any = null): any => {
+        const inputKey = `${nodeId}-${portId}`;
+        if (tc.inputs[inputKey] !== undefined) return tc.inputs[inputKey];
+
+        const conn = connections.find(c => c.toNodeId === nodeId && c.toPortId === portId);
+        if (conn) {
+          const val = currentVars[`${conn.fromNodeId}-${conn.fromPortId}`];
+          return val !== undefined ? val : fallback;
+        }
+        return fallback;
+      };
+
+      order.forEach(nodeId => {
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        executedNodeIds.push(nodeId);
+
+        switch (node.type) {
+          case 'input':
+          case 'variable': {
+            const outPort = node.outputs[0]?.id;
+            if (outPort) {
+              const portKey = `${node.id}-${outPort}`;
+              currentVars[portKey] = tc.inputs[portKey] !== undefined ? tc.inputs[portKey] : (node.data.value !== undefined ? node.data.value : 0);
+            }
+            break;
+          }
+
+          case 'operator': {
+            const valA = getInputValue(node.id, 'a', 0);
+            const valB = getInputValue(node.id, 'b', 0);
+            const op = node.data.operator || '+';
+            let result: any = 0;
+
+            try {
+              switch (op) {
+                case '+': result = Number(valA) + Number(valB); break;
+                case '-': result = Number(valA) - Number(valB); break;
+                case '*': result = Number(valA) * Number(valB); break;
+                case '/': result = Number(valB) !== 0 ? Number(valA) / Number(valB) : 0; break;
+                case '%': result = Number(valA) % Number(valB); break;
+                case '>': result = valA > valB; break;
+                case '<': result = valA < valB; break;
+                case '===': result = valA === valB; break;
+                case '&&': result = Boolean(valA) && Boolean(valB); break;
+                case '||': result = Boolean(valA) || Boolean(valB); break;
+                default: result = valA + valB;
+              }
+            } catch {
+              result = 0;
+            }
+
+            const outPort = node.outputs[0]?.id;
+            if (outPort) {
+              currentVars[`${node.id}-${outPort}`] = result;
+            }
+            break;
+          }
+
+          case 'conditional': {
+            const cond = getInputValue(node.id, 'condition', false);
+            const ifTrue = getInputValue(node.id, 'if_true', null);
+            const ifFalse = getInputValue(node.id, 'if_false', null);
+            const result = cond ? ifTrue : ifFalse;
+
+            const outPort = node.outputs[0]?.id;
+            if (outPort) {
+              currentVars[`${node.id}-${outPort}`] = result;
+            }
+            break;
+          }
+
+          case 'logger': {
+            const val = getInputValue(node.id, 'input_val', 'undefined');
+            currentVars[`${node.id}-input_val`] = val;
+            break;
+          }
+
+          case 'custom': {
+            const inputsObj: Record<string, any> = {};
+            node.inputs.forEach(p => {
+              inputsObj[p.id] = getInputValue(node.id, p.id, null);
+            });
+
+            const outputsMap = new Map<string, any>();
+            const outputsObj = {
+              set: (portId: string, val: any) => {
+                outputsMap.set(portId, val);
+              }
+            };
+
+            try {
+              const runScript = new Function('inputs', 'outputs', node.data.code || '');
+              runScript(inputsObj, outputsObj);
+
+              node.outputs.forEach(p => {
+                currentVars[`${node.id}-${p.id}`] = outputsMap.get(p.id) !== undefined ? outputsMap.get(p.id) : null;
+              });
+            } catch {
+              node.outputs.forEach(p => {
+                currentVars[`${node.id}-${p.id}`] = null;
+              });
+            }
+            break;
+          }
+        }
+      });
+
+      const assertionResults = tc.assertions.map(assertion => {
+        const varKey = `${assertion.nodeId}-${assertion.portId}`;
+        const actualValue = currentVars[varKey];
+        let passed = false;
+        let message = '';
+        const expStr = assertion.expectedValue;
+
+        switch (assertion.operator) {
+          case 'equals':
+            passed = String(actualValue) === expStr;
+            message = passed ? 'Passed' : `Expected "${expStr}", got "${actualValue}"`;
+            break;
+          case 'not_equals':
+            passed = String(actualValue) !== expStr;
+            message = passed ? 'Passed' : `Expected not equals to "${expStr}"`;
+            break;
+          case 'greater_than':
+            passed = Number(actualValue) > Number(expStr);
+            message = passed ? 'Passed' : `Expected > ${expStr}, got ${actualValue}`;
+            break;
+          case 'less_than':
+            passed = Number(actualValue) < Number(expStr);
+            message = passed ? 'Passed' : `Expected < ${expStr}, got ${actualValue}`;
+            break;
+          case 'contains':
+            passed = String(actualValue).toLowerCase().includes(expStr.toLowerCase());
+            message = passed ? 'Passed' : `Expected to contain "${expStr}", got "${actualValue}"`;
+            break;
+          case 'is_type':
+            const actualType = typeof actualValue;
+            passed = actualType === expStr.toLowerCase();
+            message = passed ? 'Passed' : `Expected type "${expStr}", got "${actualType}"`;
+            break;
+        }
+
+        return {
+          assertionId: assertion.id,
+          passed,
+          actualValue,
+          message
+        };
+      });
+
+      const passed = assertionResults.every(r => r.passed);
+      const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+
+      results.push({
+        testCaseId: tc.id,
+        passed,
+        assertionResults,
+        executedNodeIds,
+        durationMs
+      });
+    });
+
+    setLastTestResults(results);
   };
 
   return (
@@ -637,6 +898,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       executionState,
       error,
       customTemplates,
+      testCases,
+      lastTestResults,
       addNode,
       deleteNode,
       updateNodeData,
@@ -653,7 +916,14 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setGraphData,
       setCurrentNodeId,
       createCustomTemplate,
-      deleteCustomTemplate
+      deleteCustomTemplate,
+      addTestCase,
+      deleteTestCase,
+      updateTestCase,
+      addAssertion,
+      deleteAssertion,
+      runTestSuite,
+      clearTestResults
     }}>
       {children}
     </GraphContext.Provider>
