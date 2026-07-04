@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -11,6 +11,8 @@ interface HeaderProps {
   isDebuggerActive: boolean;
   onToggleTestLab: () => void;
   isTestLabActive: boolean;
+  onToggleAstExplorer: () => void;
+  isAstExplorerActive: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -21,7 +23,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleDebugger,
   isDebuggerActive,
   onToggleTestLab,
-  isTestLabActive
+  isTestLabActive,
+  onToggleAstExplorer,
+  isAstExplorerActive
 }) => {
   const {
     executionState,
@@ -185,6 +189,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Beaker className={`h-4 w-4 ${isTestLabActive ? 'animate-pulse text-amber-400' : 'text-slate-400'}`} />
           <span>Test Studio</span>
+        </button>
+
+        {/* AST Explorer Toggle Button */}
+        <button
+          onClick={onToggleAstExplorer}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isAstExplorerActive
+              ? 'bg-neon-pink/20 border-neon-pink text-neon-pink shadow-lg shadow-pink-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-neon-pink/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <Binary className={`h-4 w-4 ${isAstExplorerActive ? 'animate-pulse text-neon-pink' : 'text-slate-400'}`} />
+          <span>AST Explorer</span>
         </button>
 
         {/* Debugger Active Badge */}

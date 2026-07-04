@@ -14,6 +14,7 @@ import { GraphAnalyticsLab } from './components/GraphAnalyticsLab';
 import { ParallelExecutionProfiler } from './components/ParallelExecutionProfiler';
 import { TimeTravelDebugger } from './components/TimeTravelDebugger';
 import { TestSuiteLab } from './components/TestSuiteLab';
+import { AstExplorer } from './components/AstExplorer';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -22,6 +23,7 @@ function AppWorkspace() {
   const [isProfilerOpen, setIsProfilerOpen] = useState(false);
   const [isDebuggerOpen, setIsDebuggerOpen] = useState(false);
   const [isTestLabOpen, setIsTestLabOpen] = useState(false);
+  const [isAstExplorerOpen, setIsAstExplorerOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -38,6 +40,8 @@ function AppWorkspace() {
         isDebuggerActive={isDebuggerOpen}
         onToggleTestLab={() => setIsTestLabOpen(prev => !prev)}
         isTestLabActive={isTestLabOpen}
+        onToggleAstExplorer={() => setIsAstExplorerOpen(prev => !prev)}
+        isAstExplorerActive={isAstExplorerOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -77,6 +81,9 @@ function AppWorkspace() {
 
       {/* Test Suite Lab Slide-over */}
       <TestSuiteLab isOpen={isTestLabOpen} onClose={() => setIsTestLabOpen(false)} />
+
+      {/* AST Explorer Slide-over */}
+      <AstExplorer isOpen={isAstExplorerOpen} onClose={() => setIsAstExplorerOpen(false)} />
     </div>
   );
 }
