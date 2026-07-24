@@ -1,22 +1,22 @@
 import { useEffect, useRef } from 'react';
-import type { Node, Connection } from '../types/graph';
+import type { Node, Connection, NodeType } from '../types/graph';
 
 interface GraphActions {
   nodes: Node[];
   connections: Connection[];
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeData: (id: string, data: Partial<Node['data']>) => void;
-  addNode: (type: any, x: number, y: number) => void;
+  addNode: (type: NodeType, x: number, y: number) => void;
   addConnection: (fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string) => boolean;
 }
 
 interface MultiplayerActions {
-  collaborators: any;
+  collaborators: Record<string, unknown>;
   latency: number;
   isSimulating: boolean;
   triggerSyncTransaction: (message: string, type?: 'info' | 'success' | 'warn') => void;
   updateCollaboratorPosition: (id: string, targetX: number, targetY: number) => void;
-  updateCollaboratorDetails: (id: string, details: any) => void;
+  updateCollaboratorDetails: (id: string, details: Record<string, unknown>) => void;
 }
 
 /**
@@ -27,29 +27,39 @@ export function useMultiplayerSimulator(
   graph: GraphActions,
   multiplayer: MultiplayerActions
 ) {
-  const { nodes, connections, updateNodePosition, updateNodeData } = graph;
-  const {
-    isSimulating,
-    latency,
-    triggerSyncTransaction,
-    updateCollaboratorPosition,
-    updateCollaboratorDetails
-  } = multiplayer;
+  const { nodes, connections } = graph;
+  const { isSimulating, latency } = multiplayer;
 
   // Store ref locks to prevent concurrent loop collisions
   const isSimulatingRef = useRef(isSimulating);
   const latencyRef = useRef(latency);
   const nodesRef = useRef(nodes);
   const connectionsRef = useRef(connections);
+  const graphRef = useRef(graph);
+  const multiplayerRef = useRef(multiplayer);
+  
+  // Track active loop timers for clean teardown
+  const activeTimersRef = useRef<number[]>([]);
 
   useEffect(() => { isSimulatingRef.current = isSimulating; }, [isSimulating]);
   useEffect(() => { latencyRef.current = latency; }, [latency]);
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   useEffect(() => { connectionsRef.current = connections; }, [connections]);
+  useEffect(() => { graphRef.current = graph; }, [graph]);
+  useEffect(() => { multiplayerRef.current = multiplayer; }, [multiplayer]);
 
   // Collaborator Routine Timer Loops
   useEffect(() => {
     if (!isSimulating) return;
+
+    const registerTimeout = (fn: () => void, ms: number) => {
+      const handle = window.setTimeout(() => {
+        activeTimersRef.current = activeTimersRef.current.filter(t => t !== handle);
+        fn();
+      }, ms);
+      activeTimersRef.current.push(handle);
+      return handle;
+    };
 
     // --- Peer 1: Alice (Specialist in Math & Logic Operations) ---
     const runAliceLoop = () => {
@@ -68,19 +78,19 @@ export function useMultiplayerSimulator(
           const finalY = Math.max(target.y + deltaY, 60);
 
           // Phase 1: Move cursor to node position
-          updateCollaboratorPosition('alice', target.x, target.y);
-          updateCollaboratorDetails('alice', { status: 'syncing', activeNodeId: target.id });
+          multiplayerRef.current.updateCollaboratorPosition('alice', target.x, target.y);
+          multiplayerRef.current.updateCollaboratorDetails('alice', { status: 'syncing', activeNodeId: target.id });
           
           // Phase 2: Simulating drag transaction with latency buffer
-          setTimeout(() => {
+          registerTimeout(() => {
             if (isSimulatingRef.current) {
-              updateCollaboratorPosition('alice', finalX, finalY);
-              updateNodePosition(target.id, finalX, finalY);
-              triggerSyncTransaction(`🔄 [Sync] Dev_Alice relocated block '${target.label}' to (${finalX}, ${finalY}).`, 'info');
+              multiplayerRef.current.updateCollaboratorPosition('alice', finalX, finalY);
+              graphRef.current.updateNodePosition(target.id, finalX, finalY);
+              multiplayerRef.current.triggerSyncTransaction(`🔄 [Sync] Dev_Alice relocated block '${target.label}' to (${finalX}, ${finalY}).`, 'info');
               
               // Phase 3: Return to idle
-              setTimeout(() => {
-                updateCollaboratorDetails('alice', { status: 'idle', activeNodeId: null });
+              registerTimeout(() => {
+                multiplayerRef.current.updateCollaboratorDetails('alice', { status: 'idle', activeNodeId: null });
               }, 400);
             }
           }, latencyRef.current);
@@ -91,16 +101,16 @@ export function useMultiplayerSimulator(
       else {
         const randX = 100 + Math.random() * 600;
         const randY = 100 + Math.random() * 450;
-        updateCollaboratorPosition('alice', randX, randY);
+        multiplayerRef.current.updateCollaboratorPosition('alice', randX, randY);
         
         // Simulates ping pings
         const updatedPing = Math.max(30, Math.round(42 + (Math.random() - 0.5) * 12));
-        updateCollaboratorDetails('alice', { ping: updatedPing });
+        multiplayerRef.current.updateCollaboratorDetails('alice', { ping: updatedPing });
       }
 
       // Schedule next event (latency factored in)
       const nextDelay = 3000 + Math.random() * 2500 + latencyRef.current;
-      setTimeout(runAliceLoop, nextDelay);
+      registerTimeout(runAliceLoop, nextDelay);
     };
 
     // --- Peer 2: Bob (Specialist in variables & printing telemetry) ---
@@ -118,16 +128,16 @@ export function useMultiplayerSimulator(
             ? Math.round(Math.random() * 100) 
             : ['Matrix', 'Telemetry', 'P2PStream', 'Vertex'][Math.floor(Math.random() * 4)];
 
-          updateCollaboratorPosition('bob', target.x + 100, target.y + 40);
-          updateCollaboratorDetails('bob', { status: 'busy', activeNodeId: target.id });
+          multiplayerRef.current.updateCollaboratorPosition('bob', target.x + 100, target.y + 40);
+          multiplayerRef.current.updateCollaboratorDetails('bob', { status: 'busy', activeNodeId: target.id });
 
-          setTimeout(() => {
+          registerTimeout(() => {
             if (isSimulatingRef.current) {
-              updateNodeData(target.id, { value: newValue });
-              triggerSyncTransaction(`📝 [Edit] Dev_Bob updated value of '${target.label}' to ${JSON.stringify(newValue)}.`, 'success');
+              graphRef.current.updateNodeData(target.id, { value: newValue });
+              multiplayerRef.current.triggerSyncTransaction(`📝 [Edit] Dev_Bob updated value of '${target.label}' to ${JSON.stringify(newValue)}.`, 'success');
               
-              setTimeout(() => {
-                updateCollaboratorDetails('bob', { status: 'idle', activeNodeId: null });
+              registerTimeout(() => {
+                multiplayerRef.current.updateCollaboratorDetails('bob', { status: 'idle', activeNodeId: null });
               }, 500);
             }
           }, latencyRef.current + 200);
@@ -138,14 +148,14 @@ export function useMultiplayerSimulator(
       else {
         const randX = 150 + Math.random() * 700;
         const randY = 150 + Math.random() * 500;
-        updateCollaboratorPosition('bob', randX, randY);
+        multiplayerRef.current.updateCollaboratorPosition('bob', randX, randY);
 
         const updatedPing = Math.max(40, Math.round(58 + (Math.random() - 0.5) * 18));
-        updateCollaboratorDetails('bob', { ping: updatedPing });
+        multiplayerRef.current.updateCollaboratorDetails('bob', { ping: updatedPing });
       }
 
       const nextDelay = 4000 + Math.random() * 3000 + latencyRef.current;
-      setTimeout(runBobLoop, nextDelay);
+      registerTimeout(runBobLoop, nextDelay);
     };
 
     // --- Peer 3: AI Copilot Bot (Validates graph topological states) ---
@@ -160,15 +170,15 @@ export function useMultiplayerSimulator(
         const connCount = connectionsRef.current.length;
 
         // Hover over logger node or center area
-        updateCollaboratorPosition('copilot', 500, 250);
-        updateCollaboratorDetails('copilot', { status: 'syncing' });
+        multiplayerRef.current.updateCollaboratorPosition('copilot', 500, 250);
+        multiplayerRef.current.updateCollaboratorDetails('copilot', { status: 'syncing' });
 
-        setTimeout(() => {
+        registerTimeout(() => {
           if (isSimulatingRef.current) {
-            triggerSyncTransaction(`🤖 [AI Agent] Diagnostic checklist: NodeCount=${nodeCount}, Wires=${connCount}. Verifying top-sort pathways...`, 'info');
-            triggerSyncTransaction(`✅ [AI Agent] Dynamic execution graph satisfies Kahn's topological DAG bounds.`, 'success');
+            multiplayerRef.current.triggerSyncTransaction(`🤖 [AI Agent] Diagnostic checklist: NodeCount=${nodeCount}, Wires=${connCount}. Verifying top-sort pathways...`, 'info');
+            multiplayerRef.current.triggerSyncTransaction(`✅ [AI Agent] Dynamic execution graph satisfies Kahn's topological DAG bounds.`, 'success');
             
-            updateCollaboratorDetails('copilot', { status: 'idle' });
+            multiplayerRef.current.updateCollaboratorDetails('copilot', { status: 'idle' });
           }
         }, latencyRef.current);
       }
@@ -177,25 +187,24 @@ export function useMultiplayerSimulator(
       else {
         const randX = 200 + Math.random() * 600;
         const randY = 80 + Math.random() * 400;
-        updateCollaboratorPosition('copilot', randX, randY);
+        multiplayerRef.current.updateCollaboratorPosition('copilot', randX, randY);
 
         const updatedPing = Math.max(10, Math.round(15 + (Math.random() - 0.5) * 4));
-        updateCollaboratorDetails('copilot', { ping: updatedPing });
+        multiplayerRef.current.updateCollaboratorDetails('copilot', { ping: updatedPing });
       }
 
       const nextDelay = 5000 + Math.random() * 4000 + latencyRef.current;
-      setTimeout(runCopilotLoop, nextDelay);
+      registerTimeout(runCopilotLoop, nextDelay);
     };
 
     // Start collaborator timers
-    const timerA = setTimeout(runAliceLoop, 1000);
-    const timerB = setTimeout(runBobLoop, 2200);
-    const timerC = setTimeout(runCopilotLoop, 3500);
+    registerTimeout(runAliceLoop, 1000);
+    registerTimeout(runBobLoop, 2200);
+    registerTimeout(runCopilotLoop, 3500);
 
     return () => {
-      clearTimeout(timerA);
-      clearTimeout(timerB);
-      clearTimeout(timerC);
+      activeTimersRef.current.forEach(t => clearTimeout(t));
+      activeTimersRef.current = [];
     };
   }, [isSimulating]);
 }

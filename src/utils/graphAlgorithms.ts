@@ -65,7 +65,7 @@ export function synthesizeCode(nodes: Node[], connections: Connection[]): string
     return `// Graph is empty. Drag and drop nodes to write code.`;
   }
 
-  let codeLines: string[] = [
+  const codeLines: string[] = [
     `// =============================================`,
     `// SynapseFlow Synthesized Script`,
     `// Generated: ${new Date().toLocaleTimeString()}`,
@@ -86,7 +86,7 @@ export function synthesizeCode(nodes: Node[], connections: Connection[]): string
     if (!node) return;
 
     // Help map node connection inputs
-    const getInputValue = (portId: string, fallback: any = null): string => {
+    const getInputValue = (portId: string, fallback: unknown = null): string => {
       const conn = connections.find(c => c.toNodeId === nodeId && c.toPortId === portId);
       if (conn) {
         return portToVar[`${conn.fromNodeId}-${conn.fromPortId}`] || 'undefined';

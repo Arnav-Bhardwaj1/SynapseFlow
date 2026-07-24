@@ -28,14 +28,14 @@ export interface Node {
   inputs: Port[];
   outputs: Port[];
   data: {
-    value?: any;          // Used by input / variable nodes
+    value?: unknown;       // Used by input / variable nodes
     operator?: string;     // Used by operator (+, -, *, /, >, <, ===)
     logPrefix?: string;    // Used by logger nodes
     customNodeId?: string; // Used by custom nodes to map template
     code?: string;        // Contains custom JS script body
     customColor?: string; // Color config for custom nodes
     customIcon?: string;  // Icon config for custom nodes
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -59,9 +59,10 @@ export interface ExecutionState {
   isRunning: boolean;
   isPaused: boolean;
   speed: number; // in ms
-  variables: Record<string, any>; // maps 'nodeId-portId' to value
+  variables: Record<string, unknown>; // maps 'nodeId-portId' to value
   logs: ExecutionLog[];
   history: string[]; // stack of executed node IDs
+  stepIndex: number;
 }
 
 export interface PresetTemplate {
@@ -83,14 +84,14 @@ export interface TestCase {
   id: string;
   name: string;
   description: string;
-  inputs: Record<string, any>; // maps "nodeId-portId" to value
+  inputs: Record<string, unknown>; // maps "nodeId-portId" to value
   assertions: Assertion[];
 }
 
 export interface AssertionResult {
   assertionId: string;
   passed: boolean;
-  actualValue: any;
+  actualValue: unknown;
   message: string;
 }
 

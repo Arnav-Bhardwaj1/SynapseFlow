@@ -15,6 +15,7 @@ import { ParallelExecutionProfiler } from './components/ParallelExecutionProfile
 import { TimeTravelDebugger } from './components/TimeTravelDebugger';
 import { TestSuiteLab } from './components/TestSuiteLab';
 import { AstExplorer } from './components/AstExplorer';
+import { VisualDiffLab } from './components/VisualDiffLab';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -24,6 +25,7 @@ function AppWorkspace() {
   const [isDebuggerOpen, setIsDebuggerOpen] = useState(false);
   const [isTestLabOpen, setIsTestLabOpen] = useState(false);
   const [isAstExplorerOpen, setIsAstExplorerOpen] = useState(false);
+  const [isDiffLabOpen, setIsDiffLabOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -42,6 +44,8 @@ function AppWorkspace() {
         isTestLabActive={isTestLabOpen}
         onToggleAstExplorer={() => setIsAstExplorerOpen(prev => !prev)}
         isAstExplorerActive={isAstExplorerOpen}
+        onToggleDiffLab={() => setIsDiffLabOpen(prev => !prev)}
+        isDiffLabActive={isDiffLabOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -70,6 +74,7 @@ function AppWorkspace() {
         {/* Core scope memory state registers */}
         <ScopeInspector />
       </div>
+
       {/* Graph Analytics & Optimization Lab Slide-over */}
       <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />
 
@@ -84,6 +89,9 @@ function AppWorkspace() {
 
       {/* AST Explorer Slide-over */}
       <AstExplorer isOpen={isAstExplorerOpen} onClose={() => setIsAstExplorerOpen(false)} />
+
+      {/* Visual AST Graph Diff & Version Engine */}
+      <VisualDiffLab isOpen={isDiffLabOpen} onClose={() => setIsDiffLabOpen(false)} />
     </div>
   );
 }

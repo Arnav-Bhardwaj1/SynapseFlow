@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useGraph } from '../context/GraphContext';
 import type { Assertion } from '../types/graph';
 import { 
@@ -104,16 +104,16 @@ export const TestSuiteLab: React.FC<TestSuiteLabProps> = ({ isOpen, onClose }) =
   }, [nodes]);
 
   // Initialize selected IDs on node list updates
-  useState(() => {
-    if (assertionPortsList.length > 0) {
+  useEffect(() => {
+    if (assertionPortsList.length > 0 && !selectedNodeId) {
       setSelectedNodeId(assertionPortsList[0].nodeId);
       setSelectedPortId(assertionPortsList[0].portId);
     }
-    if (inputPortsList.length > 0) {
+    if (inputPortsList.length > 0 && !inputNodeId) {
       setInputNodeId(inputPortsList[0].nodeId);
       setInputPortId(inputPortsList[0].portId);
     }
-  });
+  }, [assertionPortsList, inputPortsList, selectedNodeId, inputNodeId]);
 
   // Calculate overall test stats
   const stats = useMemo(() => {

@@ -33,7 +33,7 @@ export function compileAiPrompt(prompt: string): PromptSpec {
   };
 
   // Case 1: Math Chaining with Condition Check ("adds 45 to 15, then checks if it is larger than 50, and logs the result")
-  if (p.includes('add') && p.includes('larger') || p.includes('greater') && p.includes('log')) {
+  if ((p.includes('add') || p.includes('sum')) && (p.includes('larger') || p.includes('greater')) && p.includes('log')) {
     spec.thoughtSteps.push(`📋 [Match] Matched complex math-comparison branching logic model.`);
     
     // Extract numbers

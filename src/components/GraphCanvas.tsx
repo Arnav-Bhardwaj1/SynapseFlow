@@ -59,19 +59,19 @@ export const GraphCanvas: React.FC = () => {
   // Connection dragging state
   const [activeLink, setActiveLink] = useState<DraggingConnection | null>(null);
 
-  // Port Calculations (Width = 200px, Header = 40px)
+  // Port Calculations (Width = 200px)
   const getNodePortCoords = (node: Node, portId: string, isInput: boolean): { x: number; y: number } => {
     if (isInput) {
       const idx = node.inputs.findIndex(p => p.id === portId);
       return {
         x: node.x,
-        y: node.y + 60 + (idx >= 0 ? idx : 0) * 36
+        y: node.y + 71 + (idx >= 0 ? idx : 0) * 26
       };
     } else {
       const idx = node.outputs.findIndex(p => p.id === portId);
       return {
         x: node.x + 200,
-        y: node.y + 60 + (idx >= 0 ? idx : 0) * 36
+        y: node.y + 71 + (idx >= 0 ? idx : 0) * 26
       };
     }
   };

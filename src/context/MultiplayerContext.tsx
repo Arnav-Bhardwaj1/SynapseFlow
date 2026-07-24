@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface Collaborator {
@@ -72,18 +73,17 @@ const INITIAL_COLLABORATORS: Record<string, Collaborator> = {
   }
 };
 
+const INITIAL_SYNC_LOGS: SyncLog[] = [
+  { timestamp: new Date().toLocaleTimeString(), message: '⚡ Multiplayer Session Server initialized successfully.', type: 'info' },
+  { timestamp: new Date().toLocaleTimeString(), message: '📡 Listening for incoming transaction delta stream packets...', type: 'info' },
+  { timestamp: new Date().toLocaleTimeString(), message: '👥 Collaborators connected: Dev_Alice, Dev_Bob, AI_Copilot_9000', type: 'success' }
+];
+
 export const MultiplayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [collaborators, setCollaborators] = useState<Record<string, Collaborator>>(INITIAL_COLLABORATORS);
   const [latency, setLatencyState] = useState<number>(150); // initial simulated lag 150ms
   const [isSimulating, setIsSimulating] = useState<boolean>(true);
-  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
-
-  // Add initial welcome logs
-  useEffect(() => {
-    triggerSyncTransaction('⚡ Multiplayer Session Server initialized successfully.', 'info');
-    triggerSyncTransaction('📡 Listening for incoming transaction delta stream packets...', 'info');
-    triggerSyncTransaction('👥 Collaborators connected: Dev_Alice, Dev_Bob, AI_Copilot_9000', 'success');
-  }, []);
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>(INITIAL_SYNC_LOGS);
 
   const triggerSyncTransaction = (message: string, type: SyncLog['type'] = 'info') => {
     const newLog: SyncLog = {

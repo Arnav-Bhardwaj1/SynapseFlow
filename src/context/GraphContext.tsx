@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { 
   Node, 
@@ -61,7 +62,8 @@ const initialExecutionState: ExecutionState = {
   speed: 1000,
   variables: {},
   logs: [],
-  history: []
+  history: [],
+  stepIndex: 0
 };
 
 // Initial preset configurations
@@ -271,12 +273,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const updateNodeData = (id: string, updatedData: Partial<Node['data']>) => {
+  const updateNodeData = (id: string, updatedData: Partial<Node['data']> & { label?: string }) => {
     setNodes(prev => prev.map(node => {
       if (node.id === id) {
+        const newLabel = updatedData.label !== undefined ? updatedData.label : node.label;
+        const { label: _ignored, ...cleanData } = updatedData;
         return {
           ...node,
-          data: { ...node.data, ...updatedData }
+          label: newLabel,
+          data: { ...node.data, ...cleanData }
         };
       }
       return node;
@@ -529,7 +534,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         message: '🚀 Starting Visual Execution Workflow...',
         type: 'info'
       }],
-      history: order // Use topological order as our sequence
+      history: order,
+      stepIndex: 0
     });
 
     // Start evaluation loop
@@ -541,10 +547,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!state.isRunning || state.isPaused) return;
 
     const history = state.history;
-    const completedCount = state.logs.filter(l => l.nodeId !== 'system').length;
+    const stepIndex = state.stepIndex;
 
     // Completed execution
-    if (completedCount >= history.length) {
+    if (stepIndex >= history.length) {
       setExecutionState(prev => ({
         ...prev,
         currentNodeId: null,
@@ -562,14 +568,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    const nextNodeId = history[completedCount];
+    const nextNodeId = history[stepIndex];
     const { evaluatedVars, log } = executeNodeStep(nextNodeId, state.variables);
 
     setExecutionState(prev => ({
       ...prev,
       currentNodeId: nextNodeId,
       variables: evaluatedVars,
-      logs: log ? [...prev.logs, log] : prev.logs
+      logs: log ? [...prev.logs, log] : prev.logs,
+      stepIndex: prev.stepIndex + 1
     }));
 
     // Queue next iteration based on speed
@@ -609,16 +616,17 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           { timestamp: new Date().toLocaleTimeString(), nodeId: 'system', message: '👣 Commencing Step-by-Step execution...', type: 'info' },
           ...(log ? [log] : [])
         ],
-        history: order
+        history: order,
+        stepIndex: 1
       });
       return;
     }
 
     // Otherwise, advance one step
     const history = state.history;
-    const completedCount = state.logs.filter(l => l.nodeId !== 'system').length;
+    const stepIndex = state.stepIndex;
 
-    if (completedCount >= history.length) {
+    if (stepIndex >= history.length) {
       setExecutionState(prev => ({
         ...prev,
         currentNodeId: null,
@@ -628,14 +636,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    const nextNodeId = history[completedCount];
+    const nextNodeId = history[stepIndex];
     const { evaluatedVars, log } = executeNodeStep(nextNodeId, state.variables);
 
     setExecutionState(prev => ({
       ...prev,
       currentNodeId: nextNodeId,
       variables: evaluatedVars,
-      logs: log ? [...prev.logs, log] : prev.logs
+      logs: log ? [...prev.logs, log] : prev.logs,
+      stepIndex: prev.stepIndex + 1
     }));
   };
 
@@ -657,12 +666,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteCustomTemplate = (id: string) => {
     setCustomTemplates(prev => prev.filter(t => t.id !== id));
-    setNodes(prev => prev.filter(n => n.data.customNodeId !== id));
-    setConnections(prev => prev.filter(c => {
-      const fromNode = nodesRef.current.find(n => n.id === c.fromNodeId);
-      const toNode = nodesRef.current.find(n => n.id === c.toNodeId);
-      return fromNode?.data?.customNodeId !== id && toNode?.data?.customNodeId !== id;
-    }));
+    const remainingNodes = nodesRef.current.filter(n => n.data.customNodeId !== id);
+    const remainingNodeIds = new Set(remainingNodes.map(n => n.id));
+    setNodes(remainingNodes);
+    setConnections(prev => prev.filter(c => remainingNodeIds.has(c.fromNodeId) && remainingNodeIds.has(c.toNodeId)));
   };
 
   const addTestCase = (name: string, description: string = '') => {
@@ -809,9 +816,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               inputsObj[p.id] = getInputValue(node.id, p.id, null);
             });
 
-            const outputsMap = new Map<string, any>();
+            const outputsMap = new Map<string, unknown>();
             const outputsObj = {
-              set: (portId: string, val: any) => {
+              set: (portId: string, val: unknown) => {
                 outputsMap.set(portId, val);
               }
             };
@@ -861,11 +868,12 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             passed = String(actualValue).toLowerCase().includes(expStr.toLowerCase());
             message = passed ? 'Passed' : `Expected to contain "${expStr}", got "${actualValue}"`;
             break;
-          case 'is_type':
+          case 'is_type': {
             const actualType = typeof actualValue;
             passed = actualType === expStr.toLowerCase();
             message = passed ? 'Passed' : `Expected type "${expStr}", got "${actualType}"`;
             break;
+          }
         }
 
         return {

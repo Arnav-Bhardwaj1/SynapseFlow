@@ -5,7 +5,7 @@ import { topologicalSort } from './graphAlgorithms';
 export interface ASTNode {
   type: string;
   nodeId?: string; // Links back to the canvas Node ID that generated this AST node
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ProgramNode extends ASTNode {
@@ -32,7 +32,7 @@ export interface IdentifierNode extends ASTNode {
 
 export interface LiteralNode extends ASTNode {
   type: 'Literal';
-  value: any;
+  value: unknown;
   raw: string;
 }
 
@@ -109,7 +109,7 @@ export function compileGraphToAST(nodes: Node[], connections: Connection[]): Pro
   const portToVar: Record<string, string> = {};
 
   // Traverses connections entering a node port
-  const getInputValueAST = (nodeId: string, portId: string, fallback: any = 0): ASTNode => {
+  const getInputValueAST = (nodeId: string, portId: string, fallback: unknown = 0): ASTNode => {
     const conn = connections.find(c => c.toNodeId === nodeId && c.toPortId === portId);
     if (conn) {
       const varName = portToVar[`${conn.fromNodeId}-${conn.fromPortId}`];
@@ -272,7 +272,7 @@ export function compileGraphToAST(nodes: Node[], connections: Connection[]): Pro
 /**
  * Evaluates binary expressions with literal operands
  */
-function evaluateOperation(leftVal: any, rightVal: any, operator: string): any {
+function evaluateOperation(leftVal: unknown, rightVal: unknown, operator: string): unknown {
   switch (operator) {
     case '+': return Number(leftVal) + Number(rightVal);
     case '-': return Number(leftVal) - Number(rightVal);
@@ -300,7 +300,7 @@ export function optimizeAST(
 
   // 1. Constant Propagation & Constant Folding
   if (passes.foldConstants) {
-    const constants: Record<string, any> = {};
+    const constants: Record<string, unknown> = {};
     let foldedCount = 0;
     let propCount = 0;
 
@@ -362,7 +362,7 @@ export function optimizeAST(
       if (node.type === 'CustomScriptBlock') {
         return {
           ...node,
-          inputs: node.inputs.map((input: any) => ({
+          inputs: node.inputs.map((input: { name: string; value: ASTNode }) => ({
             ...input,
             value: foldNode(input.value)
           }))
@@ -393,7 +393,7 @@ export function optimizeAST(
       }
 
       if (stmt.type === 'CustomScriptBlock') {
-        stmt.inputs = stmt.inputs.map((input: any) => ({
+        stmt.inputs = stmt.inputs.map((input: { name: string; value: ASTNode }) => ({
           ...input,
           value: foldNode(input.value)
         }));
@@ -426,7 +426,7 @@ export function optimizeAST(
       } else if (node.type === 'CallExpression') {
         node.arguments.forEach((arg: ASTNode) => collectRefs(arg, refSet));
       } else if (node.type === 'CustomScriptBlock') {
-        node.inputs.forEach((input: any) => collectRefs(input.value, refSet));
+        node.inputs.forEach((input: { name: string; value: ASTNode }) => collectRefs(input.value, refSet));
       }
     };
 
@@ -444,7 +444,7 @@ export function optimizeAST(
         collectRefs(stmt.expression, refs);
       } else if (stmt.type === 'CustomScriptBlock') {
         outputs = stmt.outputs.map((p: string) => `res_${(stmt.nodeId || '').substring(0, 4)}_${p}`);
-        stmt.inputs.forEach((input: any) => collectRefs(input.value, refs));
+        stmt.inputs.forEach((input: { name: string; value: ASTNode }) => collectRefs(input.value, refs));
       }
 
       graphMap[key] = {
@@ -577,7 +577,7 @@ export function optimizeAST(
       if (node.type === 'CustomScriptBlock') {
         return {
           ...node,
-          inputs: node.inputs.map((input: any) => ({
+          inputs: node.inputs.map((input: { name: string; value: ASTNode }) => ({
             ...input,
             value: renameNode(input.value)
           }))
@@ -603,7 +603,7 @@ export function optimizeAST(
       }
 
       if (stmt.type === 'CustomScriptBlock') {
-        stmt.inputs = stmt.inputs.map((input: any) => ({
+        stmt.inputs = stmt.inputs.map((input: { name: string; value: ASTNode }) => ({
           ...input,
           value: renameNode(input.value)
         }));
@@ -692,7 +692,7 @@ export function generateCodeFromAST(program: ProgramNode): string {
         });
 
         const inputsMapping = stmt.inputs
-          .map((input: any) => `${input.name}: ${printNode(input.value)}`)
+          .map((input: { name: string; value: ASTNode }) => `${input.name}: ${printNode(input.value)}`)
           .join(', ');
 
         lines.push(`  (() => {`);

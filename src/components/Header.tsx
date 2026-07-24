@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -13,6 +13,8 @@ interface HeaderProps {
   isTestLabActive: boolean;
   onToggleAstExplorer: () => void;
   isAstExplorerActive: boolean;
+  onToggleDiffLab: () => void;
+  isDiffLabActive: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -25,7 +27,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTestLab,
   isTestLabActive,
   onToggleAstExplorer,
-  isAstExplorerActive
+  isAstExplorerActive,
+  onToggleDiffLab,
+  isDiffLabActive
 }) => {
   const {
     executionState,
@@ -202,6 +206,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Binary className={`h-4 w-4 ${isAstExplorerActive ? 'animate-pulse text-neon-pink' : 'text-slate-400'}`} />
           <span>AST Explorer</span>
+        </button>
+
+        {/* Diff Engine Toggle Button */}
+        <button
+          onClick={onToggleDiffLab}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+            isDiffLabActive
+              ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/10'
+              : 'bg-slate-900/80 border-cyber-border hover:border-cyan-400/50 text-slate-300 hover:bg-slate-900'
+          }`}
+        >
+          <GitCompare className={`h-4 w-4 ${isDiffLabActive ? 'animate-pulse text-cyan-400' : 'text-slate-400'}`} />
+          <span>Diff Engine</span>
         </button>
 
         {/* Debugger Active Badge */}
