@@ -6,14 +6,12 @@ import {
   GitCompare,
   GitCommit,
   GitMerge,
-  Check,
   RefreshCw,
   Plus,
   Minus,
   Sliders,
   FileCode2,
   Layers,
-  ArrowRight,
   Sparkles,
   Info,
   CheckCircle2
@@ -42,7 +40,7 @@ export interface ConnectionDiffItem {
 }
 
 export const VisualDiffLab: React.FC<VisualDiffLabProps> = ({ isOpen, onClose }) => {
-  const { nodes: currentNodes, connections: currentConnections, presetTemplates, setNodes, setConnections } = useGraph();
+  const { nodes: currentNodes, connections: currentConnections, presetTemplates, setGraphData } = useGraph();
 
   // Snapshot State
   const [selectedTargetId, setSelectedTargetId] = useState<string>('preset-0'); // index or preset name
@@ -51,7 +49,8 @@ export const VisualDiffLab: React.FC<VisualDiffLabProps> = ({ isOpen, onClose })
 
   // Available comparison targets (Preset templates + simulated historical snapshots)
   const comparisonTargets = useMemo(() => {
-    const presets = presetTemplates.map((p, idx) => ({
+    const safePresets = presetTemplates || [];
+    const presets = safePresets.map((p, idx) => ({
       id: `preset-${idx}`,
       name: `Preset: ${p.name}`,
       description: p.description,
@@ -159,8 +158,7 @@ export const VisualDiffLab: React.FC<VisualDiffLabProps> = ({ isOpen, onClose })
   // --- 3-WAY MERGE RESOLUTION ACTIONS ---
   const handleAcceptTarget = () => {
     if (!activeTarget) return;
-    setNodes(activeTarget.nodes);
-    setConnections(activeTarget.connections);
+    setGraphData(activeTarget.nodes, activeTarget.connections);
     setMergeSuccessMsg(`Successfully overwritten workspace with target snapshot: "${activeTarget.name}".`);
     setTimeout(() => setMergeSuccessMsg(null), 3500);
   };
@@ -176,8 +174,7 @@ export const VisualDiffLab: React.FC<VisualDiffLabProps> = ({ isOpen, onClose })
       return;
     }
 
-    setNodes(prev => [...prev, ...addedNodes]);
-    setConnections(prev => [...prev, ...addedConns]);
+    setGraphData([...currentNodes, ...addedNodes], [...currentConnections, ...addedConns]);
     setMergeSuccessMsg(`Merged +${addedNodes.length} new nodes & +${addedConns.length} connections into active workspace.`);
     setTimeout(() => setMergeSuccessMsg(null), 3500);
   };

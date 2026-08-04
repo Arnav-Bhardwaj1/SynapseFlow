@@ -190,6 +190,63 @@ export function synthesizeCode(nodes: Node[], connections: Connection[]): string
         });
         break;
       }
+
+      case 'subgraph': {
+        const shortId = node.id.substring(0, 4);
+        codeLines.push(`  // Subgraph Macro: ${node.label}`);
+        const inputParams = node.inputs.map(p => `${p.id}: ${getInputValue(p.id, null)}`).join(', ');
+        const subResultVar = `subRes_${shortId}`;
+        codeLines.push(`  const ${subResultVar} = (() => {`);
+        codeLines.push(`    const inVal = { ${inputParams} };`);
+        
+        const subNodes: Node[] = (node.data.subgraphNodes as Node[]) || [];
+        const subConns: Connection[] = (node.data.subgraphConnections as Connection[]) || [];
+        if (subNodes.length > 0) {
+          const { order: subOrder } = topologicalSort(subNodes, subConns);
+          const subPortToVar: Record<string, string> = {};
+          
+          subNodes.forEach((sn, idx) => {
+            if (sn.type === 'input') {
+              const inPort = node.inputs[idx]?.id;
+              subPortToVar[`${sn.id}-${sn.outputs[0]?.id || 'out'}`] = inPort ? `inVal.${inPort}` : `${sn.data.value || 0}`;
+            }
+          });
+
+          subOrder.forEach(sId => {
+            const sn = subNodes.find(n => n.id === sId);
+            if (!sn || sn.type === 'input') return;
+            const getSubVal = (portId: string, fallback: any = 0) => {
+              const conn = subConns.find(c => c.toNodeId === sId && c.toPortId === portId);
+              return conn ? (subPortToVar[`${conn.fromNodeId}-${conn.fromPortId}`] || '0') : JSON.stringify(fallback);
+            };
+            if (sn.type === 'operator') {
+              const sVar = `s_${sn.id.substring(0, 4)}`;
+              const valA = getSubVal('a', 0);
+              const valB = getSubVal('b', 0);
+              const op = sn.data.operator || '+';
+              codeLines.push(`    const ${sVar} = ${valA} ${op} ${valB};`);
+              if (sn.outputs[0]?.id) subPortToVar[`${sn.id}-${sn.outputs[0].id}`] = sVar;
+            }
+          });
+
+          codeLines.push(`    return {`);
+          node.outputs.forEach((p, idx) => {
+            const lastNode = subNodes[subNodes.length - 1 - idx] || subNodes[subNodes.length - 1];
+            const outPort = lastNode?.outputs[0]?.id || 'res';
+            const mappedVal = lastNode ? (subPortToVar[`${lastNode.id}-${outPort}`] || 'null') : 'null';
+            codeLines.push(`      ${p.id}: ${mappedVal}${idx < node.outputs.length - 1 ? ',' : ''}`);
+          });
+          codeLines.push(`    };`);
+        } else {
+          codeLines.push(`    return { ${node.outputs.map(p => `${p.id}: null`).join(', ')} };`);
+        }
+        codeLines.push(`  })();`);
+
+        node.outputs.forEach(p => {
+          portToVar[`${node.id}-${p.id}`] = `${subResultVar}.${p.id}`;
+        });
+        break;
+      }
     }
   });
 

@@ -15,6 +15,8 @@ interface HeaderProps {
   isAstExplorerActive: boolean;
   onToggleDiffLab: () => void;
   isDiffLabActive: boolean;
+  onToggleSubgraphStudio?: () => void;
+  isSubgraphStudioActive?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -29,7 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleAstExplorer,
   isAstExplorerActive,
   onToggleDiffLab,
-  isDiffLabActive
+  isDiffLabActive,
+  onToggleSubgraphStudio,
+  isSubgraphStudioActive
 }) => {
   const {
     executionState,
@@ -143,6 +147,21 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Subgraph Studio Toggle Button */}
+        {onToggleSubgraphStudio && (
+          <button
+            onClick={onToggleSubgraphStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+              isSubgraphStudioActive
+                ? 'bg-fuchsia-500/20 border-fuchsia-500 text-fuchsia-300 shadow-lg shadow-fuchsia-500/10'
+                : 'bg-slate-900/80 border-cyber-border hover:border-fuchsia-500/50 text-slate-300 hover:bg-slate-900'
+            }`}
+          >
+            <Layers className={`h-4 w-4 ${isSubgraphStudioActive ? 'animate-pulse text-fuchsia-400' : 'text-slate-400'}`} />
+            <span>Subgraph Studio</span>
+          </button>
+        )}
+
         {/* Time-Travel Debugger Toggle Button */}
         <button
           onClick={onToggleDebugger}

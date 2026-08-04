@@ -9,6 +9,7 @@ import type {
   NodeType, 
   Port, 
   CustomNodeTemplate,
+  SubgraphTemplate,
   TestCase,
   Assertion,
   TestResult
@@ -21,9 +22,11 @@ interface GraphContextProps {
   executionState: ExecutionState;
   error: string | null;
   customTemplates: CustomNodeTemplate[];
+  subgraphTemplates: SubgraphTemplate[];
+  presetTemplates: PresetTemplate[];
   testCases: TestCase[];
   lastTestResults: TestResult[] | null;
-  addNode: (type: NodeType, x: number, y: number, customTemplateId?: string) => void;
+  addNode: (type: NodeType, x: number, y: number, templateId?: string) => void;
   deleteNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<Node['data']>) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
@@ -40,6 +43,8 @@ interface GraphContextProps {
   setCurrentNodeId: (nodeId: string | null) => void;
   createCustomTemplate: (template: Omit<CustomNodeTemplate, 'id'>) => void;
   deleteCustomTemplate: (id: string) => void;
+  createSubgraphTemplate: (template: Omit<SubgraphTemplate, 'id'>) => void;
+  deleteSubgraphTemplate: (id: string) => void;
   addTestCase: (name: string, description?: string) => void;
   deleteTestCase: (id: string) => void;
   updateTestCase: (id: string, updates: Partial<TestCase>) => void;
@@ -153,6 +158,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const [subgraphTemplates, setSubgraphTemplates] = useState<SubgraphTemplate[]>(() => {
+    try {
+      const stored = localStorage.getItem('synapse_subgraph_templates');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [testCases, setTestCases] = useState<TestCase[]>(() => {
     try {
       const stored = localStorage.getItem('synapse_test_cases');
@@ -167,6 +181,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     localStorage.setItem('synapse_custom_templates', JSON.stringify(customTemplates));
   }, [customTemplates]);
+
+  useEffect(() => {
+    localStorage.setItem('synapse_subgraph_templates', JSON.stringify(subgraphTemplates));
+  }, [subgraphTemplates]);
 
   useEffect(() => {
     localStorage.setItem('synapse_test_cases', JSON.stringify(testCases));
@@ -199,7 +217,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [nodes, connections]);
 
   // Node Actions
-  const addNode = (type: NodeType, x: number, y: number, customTemplateId?: string) => {
+  const addNode = (type: NodeType, x: number, y: number, templateId?: string) => {
     const id = `${type}-${generateId()}`;
     let inputs: Port[] = [];
     let outputs: Port[] = [];
@@ -241,7 +259,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         data = { logPrefix: 'Printed Output:' };
         break;
       case 'custom': {
-        const tmpl = customTemplates.find(t => t.id === customTemplateId);
+        const tmpl = customTemplates.find(t => t.id === templateId);
         if (tmpl) {
           label = tmpl.label;
           inputs = tmpl.inputs.map(p => ({ ...p }));
@@ -256,6 +274,30 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           label = 'Custom Block';
           outputs = [{ id: 'out', name: 'out', type: 'any' }];
           data = { code: 'outputs.set("out", 0);' };
+        }
+        break;
+      }
+      case 'subgraph': {
+        const tmpl = subgraphTemplates.find(t => t.id === templateId);
+        if (tmpl) {
+          label = tmpl.label;
+          inputs = tmpl.inputs.map(p => ({ ...p }));
+          outputs = tmpl.outputs.map(p => ({ ...p }));
+          data = {
+            subgraphTemplateId: tmpl.id,
+            subgraphNodes: JSON.parse(JSON.stringify(tmpl.nodes)),
+            subgraphConnections: JSON.parse(JSON.stringify(tmpl.connections)),
+            customColor: tmpl.color,
+            customIcon: tmpl.iconName
+          };
+        } else {
+          label = 'Subgraph Macro';
+          inputs = [{ id: 'in1', name: 'In', type: 'number' }];
+          outputs = [{ id: 'out1', name: 'Out', type: 'number' }];
+          data = {
+            subgraphNodes: [],
+            subgraphConnections: []
+          };
         }
         break;
       }
@@ -510,6 +552,111 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         break;
       }
+
+      case 'subgraph': {
+        const subNodes: Node[] = (node.data.subgraphNodes as Node[]) || [];
+        const subConns: Connection[] = (node.data.subgraphConnections as Connection[]) || [];
+        let execError: string | null = null;
+
+        if (subNodes.length === 0) {
+          node.outputs.forEach(p => {
+            updatedVars[`${node.id}-${p.id}`] = null;
+          });
+        } else {
+          try {
+            const { order: subOrder } = topologicalSort(subNodes, subConns);
+            const subVars: Record<string, any> = {};
+
+            // Map inputs into subNodes
+            node.inputs.forEach((p, idx) => {
+              const inputVal = getInputValue(p.id, null);
+              const targetInputNode = subNodes.find(sn => (sn.type === 'input' || sn.type === 'variable') && (sn.id === p.id || sn.label.toLowerCase().includes(p.name.toLowerCase())));
+              if (targetInputNode) {
+                const outPort = targetInputNode.outputs[0]?.id || 'out';
+                subVars[`${targetInputNode.id}-${outPort}`] = inputVal;
+              } else if (subNodes[idx]) {
+                const outPort = subNodes[idx].outputs[0]?.id || 'out';
+                subVars[`${subNodes[idx].id}-${outPort}`] = inputVal;
+              }
+            });
+
+            subOrder.forEach(sId => {
+              const sNode = subNodes.find(n => n.id === sId);
+              if (!sNode) return;
+
+              const getSubInputValue = (portId: string, fallback: any = null) => {
+                const conn = subConns.find(c => c.toNodeId === sId && c.toPortId === portId);
+                if (conn) {
+                  const val = subVars[`${conn.fromNodeId}-${conn.fromPortId}`];
+                  return val !== undefined ? val : fallback;
+                }
+                return fallback;
+              };
+
+              if (sNode.type === 'input' || sNode.type === 'variable') {
+                const outPort = sNode.outputs[0]?.id;
+                if (outPort && subVars[`${sNode.id}-${outPort}`] === undefined) {
+                  subVars[`${sNode.id}-${outPort}`] = sNode.data.value !== undefined ? sNode.data.value : 0;
+                }
+              } else if (sNode.type === 'operator') {
+                const valA = getSubInputValue('a', 0);
+                const valB = getSubInputValue('b', 0);
+                const op = sNode.data.operator || '+';
+                let res: any = 0;
+                switch (op) {
+                  case '+': res = Number(valA) + Number(valB); break;
+                  case '-': res = Number(valA) - Number(valB); break;
+                  case '*': res = Number(valA) * Number(valB); break;
+                  case '/': res = Number(valB) !== 0 ? Number(valA) / Number(valB) : 0; break;
+                  case '%': res = Number(valA) % Number(valB); break;
+                  case '>': res = valA > valB; break;
+                  case '<': res = valA < valB; break;
+                  case '===': res = valA === valB; break;
+                  case '&&': res = Boolean(valA) && Boolean(valB); break;
+                  case '||': res = Boolean(valA) || Boolean(valB); break;
+                  default: res = valA + valB;
+                }
+                const outPort = sNode.outputs[0]?.id;
+                if (outPort) subVars[`${sNode.id}-${outPort}`] = res;
+              } else if (sNode.type === 'conditional') {
+                const cond = getSubInputValue('condition', false);
+                const ifTrue = getSubInputValue('if_true', null);
+                const ifFalse = getSubInputValue('if_false', null);
+                const res = cond ? ifTrue : ifFalse;
+                const outPort = sNode.outputs[0]?.id;
+                if (outPort) subVars[`${sNode.id}-${outPort}`] = res;
+              }
+            });
+
+            node.outputs.forEach((p, idx) => {
+              const lastNode = subNodes[subNodes.length - 1 - idx] || subNodes[subNodes.length - 1];
+              if (lastNode) {
+                const outPort = lastNode.outputs[0]?.id || 'res';
+                updatedVars[`${node.id}-${p.id}`] = subVars[`${lastNode.id}-${outPort}`] !== undefined ? subVars[`${lastNode.id}-${outPort}`] : null;
+              }
+            });
+          } catch (err: any) {
+            execError = err.message || String(err);
+          }
+        }
+
+        if (execError) {
+          logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            nodeId: node.id,
+            message: `❌ Subgraph "${node.label}" execution error: ${execError}`,
+            type: 'error'
+          };
+        } else {
+          logEntry = {
+            timestamp: new Date().toLocaleTimeString(),
+            nodeId: node.id,
+            message: `🧩 Evaluated Subgraph macro "${node.label}" successfully.`,
+            type: 'success'
+          };
+        }
+        break;
+      }
     }
 
     return { evaluatedVars: updatedVars, log: logEntry };
@@ -667,6 +814,22 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteCustomTemplate = (id: string) => {
     setCustomTemplates(prev => prev.filter(t => t.id !== id));
     const remainingNodes = nodesRef.current.filter(n => n.data.customNodeId !== id);
+    const remainingNodeIds = new Set(remainingNodes.map(n => n.id));
+    setNodes(remainingNodes);
+    setConnections(prev => prev.filter(c => remainingNodeIds.has(c.fromNodeId) && remainingNodeIds.has(c.toNodeId)));
+  };
+
+  const createSubgraphTemplate = (template: Omit<SubgraphTemplate, 'id'>) => {
+    const newTmpl: SubgraphTemplate = {
+      ...template,
+      id: `subtmpl-${generateId()}`
+    };
+    setSubgraphTemplates(prev => [...prev, newTmpl]);
+  };
+
+  const deleteSubgraphTemplate = (id: string) => {
+    setSubgraphTemplates(prev => prev.filter(t => t.id !== id));
+    const remainingNodes = nodesRef.current.filter(n => n.data.subgraphTemplateId !== id);
     const remainingNodeIds = new Set(remainingNodes.map(n => n.id));
     setNodes(remainingNodes);
     setConnections(prev => prev.filter(c => remainingNodeIds.has(c.fromNodeId) && remainingNodeIds.has(c.toNodeId)));
@@ -837,6 +1000,64 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
             break;
           }
+
+          case 'subgraph': {
+            const subNodes: Node[] = (node.data.subgraphNodes as Node[]) || [];
+            const subConns: Connection[] = (node.data.subgraphConnections as Connection[]) || [];
+            if (subNodes.length > 0) {
+              const { order: subOrder } = topologicalSort(subNodes, subConns);
+              const subVars: Record<string, any> = {};
+              node.inputs.forEach((p, idx) => {
+                const inputVal = getInputValue(node.id, p.id, null);
+                const targetInputNode = subNodes.find(sn => (sn.type === 'input' || sn.type === 'variable') && (sn.id === p.id || sn.label.toLowerCase().includes(p.name.toLowerCase())));
+                if (targetInputNode) {
+                  const outPort = targetInputNode.outputs[0]?.id || 'out';
+                  subVars[`${targetInputNode.id}-${outPort}`] = inputVal;
+                } else if (subNodes[idx]) {
+                  const outPort = subNodes[idx].outputs[0]?.id || 'out';
+                  subVars[`${subNodes[idx].id}-${outPort}`] = inputVal;
+                }
+              });
+
+              subOrder.forEach(sId => {
+                const sNode = subNodes.find(n => n.id === sId);
+                if (!sNode) return;
+                const getSubVal = (pId: string, fallback: any = null) => {
+                  const conn = subConns.find(c => c.toNodeId === sId && c.toPortId === pId);
+                  return conn ? (subVars[`${conn.fromNodeId}-${conn.fromPortId}`] !== undefined ? subVars[`${conn.fromNodeId}-${conn.fromPortId}`] : fallback) : fallback;
+                };
+                if (sNode.type === 'input' || sNode.type === 'variable') {
+                  const outPort = sNode.outputs[0]?.id;
+                  if (outPort && subVars[`${sNode.id}-${outPort}`] === undefined) {
+                    subVars[`${sNode.id}-${outPort}`] = sNode.data.value !== undefined ? sNode.data.value : 0;
+                  }
+                } else if (sNode.type === 'operator') {
+                  const valA = getSubVal('a', 0);
+                  const valB = getSubVal('b', 0);
+                  const op = sNode.data.operator || '+';
+                  let res: any = 0;
+                  switch (op) {
+                    case '+': res = Number(valA) + Number(valB); break;
+                    case '-': res = Number(valA) - Number(valB); break;
+                    case '*': res = Number(valA) * Number(valB); break;
+                    case '/': res = Number(valB) !== 0 ? Number(valA) / Number(valB) : 0; break;
+                    default: res = Number(valA) + Number(valB);
+                  }
+                  const outPort = sNode.outputs[0]?.id;
+                  if (outPort) subVars[`${sNode.id}-${outPort}`] = res;
+                }
+              });
+
+              node.outputs.forEach((p, idx) => {
+                const lastNode = subNodes[subNodes.length - 1 - idx] || subNodes[subNodes.length - 1];
+                if (lastNode) {
+                  const outPort = lastNode.outputs[0]?.id || 'res';
+                  currentVars[`${node.id}-${p.id}`] = subVars[`${lastNode.id}-${outPort}`] !== undefined ? subVars[`${lastNode.id}-${outPort}`] : null;
+                }
+              });
+            }
+            break;
+          }
         }
       });
 
@@ -899,6 +1120,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLastTestResults(results);
   };
 
+  const presetTemplates = Object.values(PRESETS);
+
   return (
     <GraphContext.Provider value={{
       nodes,
@@ -906,6 +1129,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       executionState,
       error,
       customTemplates,
+      subgraphTemplates,
+      presetTemplates,
       testCases,
       lastTestResults,
       addNode,
@@ -925,6 +1150,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentNodeId,
       createCustomTemplate,
       deleteCustomTemplate,
+      createSubgraphTemplate,
+      deleteSubgraphTemplate,
       addTestCase,
       deleteTestCase,
       updateTestCase,

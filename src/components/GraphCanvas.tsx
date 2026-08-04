@@ -54,7 +54,13 @@ export const GraphCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Dragging Node state
-  const [draggedNode, setDraggedNode] = useState<{ id: string; startX: number; startY: number } | null>(null);
+  const [draggedNode, setDraggedNode] = useState<{ 
+    id: string; 
+    initialNodeX: number; 
+    initialNodeY: number; 
+    initialMouseX: number; 
+    initialMouseY: number; 
+  } | null>(null);
 
   // Connection dragging state
   const [activeLink, setActiveLink] = useState<DraggingConnection | null>(null);
@@ -65,13 +71,13 @@ export const GraphCanvas: React.FC = () => {
       const idx = node.inputs.findIndex(p => p.id === portId);
       return {
         x: node.x,
-        y: node.y + 71 + (idx >= 0 ? idx : 0) * 26
+        y: node.y + 87 + (idx >= 0 ? idx : 0) * 24
       };
     } else {
       const idx = node.outputs.findIndex(p => p.id === portId);
       return {
         x: node.x + 200,
-        y: node.y + 71 + (idx >= 0 ? idx : 0) * 26
+        y: node.y + 87 + (idx >= 0 ? idx : 0) * 24
       };
     }
   };
@@ -97,29 +103,16 @@ export const GraphCanvas: React.FC = () => {
       return;
     }
 
-    // 2. Handle Node Dragging
+    // 2. Handle Node Dragging (Smooth grid snapping without drift)
     if (draggedNode) {
-      // Scale movement according to current zoom level
-      const deltaX = (e.clientX - draggedNode.startX) / zoom;
-      const deltaY = (e.clientY - draggedNode.startY) / zoom;
+      const deltaX = (e.clientX - draggedNode.initialMouseX) / zoom;
+      const deltaY = (e.clientY - draggedNode.initialMouseY) / zoom;
       
-      // Snap to Grid (10px)
       const snapGrid = (val: number) => Math.round(val / 10) * 10;
+      const nextX = snapGrid(draggedNode.initialNodeX + deltaX);
+      const nextY = snapGrid(draggedNode.initialNodeY + deltaY);
 
-      const node = nodes.find(n => n.id === draggedNode.id);
-      if (node) {
-        updateNodePosition(
-          draggedNode.id,
-          snapGrid(node.x + deltaX),
-          snapGrid(node.y + deltaY)
-        );
-        // Reset start anchors
-        setDraggedNode({
-          id: draggedNode.id,
-          startX: e.clientX,
-          startY: e.clientY
-        });
-      }
+      updateNodePosition(draggedNode.id, nextX, nextY);
       return;
     }
 
@@ -155,11 +148,16 @@ export const GraphCanvas: React.FC = () => {
   const handleNodeHeaderMouseDown = (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedNodeId(nodeId);
-    setDraggedNode({
-      id: nodeId,
-      startX: e.clientX,
-      startY: e.clientY
-    });
+    const targetNode = nodes.find(n => n.id === nodeId);
+    if (targetNode) {
+      setDraggedNode({
+        id: nodeId,
+        initialNodeX: targetNode.x,
+        initialNodeY: targetNode.y,
+        initialMouseX: e.clientX,
+        initialMouseY: e.clientY
+      });
+    }
   };
 
   // Port Drag Initiator
@@ -318,6 +316,10 @@ export const GraphCanvas: React.FC = () => {
                 typeStyles = tmpl ? tmpl.borderColor : 'border-indigo-500/30';
                 badgeText = 'CUSTOM';
                 badgeColor = tmpl ? tmpl.badgeColor : 'bg-indigo-500/20 text-indigo-300';
+              } else if (node.type === 'subgraph') {
+                typeStyles = 'border-fuchsia-500/40 shadow-[0_0_12px_rgba(217,70,239,0.15)]';
+                badgeText = 'SUBGRAPH';
+                badgeColor = 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30';
               }
 
               const nodeAssertions = testCases.flatMap(tc => tc.assertions.filter(a => a.nodeId === node.id));
@@ -496,7 +498,7 @@ export const GraphCanvas: React.FC = () => {
                 </label>
                 <input
                   type={selectedNode.type === 'input' ? 'number' : 'text'}
-                  value={selectedNode.data.value !== undefined ? selectedNode.data.value : ''}
+                  value={(selectedNode.data.value as any) ?? ''}
                   onChange={(e) => {
                     const val = selectedNode.type === 'input' ? Number(e.target.value) : e.target.value;
                     updateNodeData(selectedNode.id, { value: val });

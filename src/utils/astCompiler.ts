@@ -5,7 +5,7 @@ import { topologicalSort } from './graphAlgorithms';
 export interface ASTNode {
   type: string;
   nodeId?: string; // Links back to the canvas Node ID that generated this AST node
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export interface ProgramNode extends ASTNode {
@@ -260,6 +260,51 @@ export function compileGraphToAST(nodes: Node[], connections: Connection[]): Pro
         } as CustomScriptBlockNode);
         break;
       }
+
+      case 'subgraph': {
+        const varName = `subRes_${shortId}`;
+        node.outputs.forEach(p => {
+          portToVar[`${node.id}-${p.id}`] = `${varName}.${p.id}`;
+        });
+
+        body.push({
+          type: 'VariableDeclaration',
+          kind: 'const',
+          nodeId: node.id,
+          declarations: [
+            {
+              type: 'VariableDeclarator',
+              id: { type: 'Identifier', name: varName },
+              init: {
+                type: 'CallExpression',
+                callee: {
+                  type: 'FunctionExpression',
+                  id: null,
+                  params: [],
+                  body: {
+                    type: 'BlockStatement',
+                    body: [
+                      {
+                        type: 'ReturnStatement',
+                        argument: {
+                          type: 'ObjectExpression',
+                          properties: node.outputs.map(p => ({
+                            type: 'Property',
+                            key: { type: 'Identifier', name: p.id },
+                            value: getInputValueAST(node.id, p.id, null)
+                          }))
+                        }
+                      }
+                    ]
+                  }
+                },
+                arguments: []
+              }
+            }
+          ]
+        } as VariableDeclarationNode);
+        break;
+      }
     }
   });
 
@@ -272,7 +317,7 @@ export function compileGraphToAST(nodes: Node[], connections: Connection[]): Pro
 /**
  * Evaluates binary expressions with literal operands
  */
-function evaluateOperation(leftVal: unknown, rightVal: unknown, operator: string): unknown {
+function evaluateOperation(leftVal: any, rightVal: any, operator: string): any {
   switch (operator) {
     case '+': return Number(leftVal) + Number(rightVal);
     case '-': return Number(leftVal) - Number(rightVal);
@@ -646,10 +691,10 @@ export function generateCodeFromAST(program: ProgramNode): string {
 
     switch (node.type) {
       case 'Identifier':
-        return node.name;
+        return String(node.name || 'val');
 
       case 'Literal':
-        return node.raw || JSON.stringify(node.value);
+        return String(node.raw || JSON.stringify(node.value));
 
       case 'BinaryExpression':
         return `(${printNode(node.left)} ${node.operator} ${printNode(node.right)})`;

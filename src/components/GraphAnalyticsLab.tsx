@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useGraph } from '../context/GraphContext';
-import type { Node, Connection } from '../types/graph';
 import { 
   Activity, 
   Brain, 
@@ -44,11 +43,6 @@ interface Recommendation {
 
 export const GraphAnalyticsLab: React.FC<GraphAnalyticsLabProps> = ({ isOpen, onClose }) => {
   const { nodes, connections, error } = useGraph();
-  
-  // Explicitly reference types to prevent unused-import compilation warnings
-  const _typedNodes: Node[] = nodes;
-  const _typedConns: Connection[] = connections;
-  console.log("AST Analyzer loading with inputs: ", _typedNodes.length, _typedConns.length);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'critical' | 'centrality' | 'map' | 'opt'>('overview');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);

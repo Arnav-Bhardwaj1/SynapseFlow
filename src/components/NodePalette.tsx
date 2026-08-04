@@ -40,7 +40,7 @@ const mapIcon = (name: string) => {
 };
 
 export const NodePalette: React.FC = () => {
-  const { addNode, nodes, customTemplates, deleteCustomTemplate } = useGraph();
+  const { addNode, nodes, customTemplates, subgraphTemplates, deleteCustomTemplate, deleteSubgraphTemplate } = useGraph();
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
 
   const nodeOptions: NodeOption[] = [
@@ -117,6 +117,49 @@ export const NodePalette: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {/* Subgraph Macros Section */}
+      {subgraphTemplates.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-cyber-border/40 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-fuchsia-400 font-mono tracking-wider">SUBGRAPH MACROS</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {subgraphTemplates.map(tmpl => (
+              <div 
+                key={tmpl.id}
+                className={`relative w-full rounded-lg border border-fuchsia-500/30 bg-linear-to-br ${tmpl.color} p-2.5 transition-all duration-200 hover:border-fuchsia-500/60 group flex justify-between items-start`}
+              >
+                <button
+                  onClick={() => handleSpawnNode('subgraph', tmpl.id)}
+                  className="flex-1 text-left cursor-pointer flex flex-col gap-1 pr-4 min-w-0"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="p-1 rounded bg-slate-900/60 border border-slate-800">
+                      {mapIcon(tmpl.iconName)}
+                    </div>
+                    <span className="text-xs font-bold font-mono text-slate-200 truncate">{tmpl.label}</span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 font-sans mt-0.5 truncate w-full">
+                    {tmpl.description}
+                  </span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSubgraphTemplate(tmpl.id);
+                  }}
+                  className="p-1 text-slate-600 hover:text-rose-400 hover:bg-slate-800 rounded absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                  title="Delete subgraph template"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Custom User Blocks Section */}
       <div className="mt-6 pt-4 border-t border-cyber-border/40 flex flex-col gap-3">

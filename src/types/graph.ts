@@ -1,4 +1,4 @@
-export type NodeType = 'input' | 'variable' | 'operator' | 'conditional' | 'logger' | 'custom';
+export type NodeType = 'input' | 'variable' | 'operator' | 'conditional' | 'logger' | 'custom' | 'subgraph';
 
 export interface Port {
   id: string;
@@ -19,6 +19,20 @@ export interface CustomNodeTemplate {
   iconName: string;    // Lucide icon name string
 }
 
+export interface SubgraphTemplate {
+  id: string;
+  label: string;
+  description: string;
+  nodes: Node[];
+  connections: Connection[];
+  inputs: Port[];
+  outputs: Port[];
+  color: string;
+  borderColor: string;
+  badgeColor: string;
+  iconName: string;
+}
+
 export interface Node {
   id: string;
   type: NodeType;
@@ -28,13 +42,16 @@ export interface Node {
   inputs: Port[];
   outputs: Port[];
   data: {
-    value?: unknown;       // Used by input / variable nodes
-    operator?: string;     // Used by operator (+, -, *, /, >, <, ===)
-    logPrefix?: string;    // Used by logger nodes
-    customNodeId?: string; // Used by custom nodes to map template
-    code?: string;        // Contains custom JS script body
-    customColor?: string; // Color config for custom nodes
-    customIcon?: string;  // Icon config for custom nodes
+    value?: unknown;          // Used by input / variable nodes
+    operator?: string;        // Used by operator (+, -, *, /, >, <, ===)
+    logPrefix?: string;       // Used by logger nodes
+    customNodeId?: string;    // Used by custom nodes to map template
+    subgraphTemplateId?: string; // Used by subgraph nodes to map template
+    subgraphNodes?: Node[];   // Embedded subgraph nodes
+    subgraphConnections?: Connection[]; // Embedded subgraph connections
+    code?: string;           // Contains custom JS script body
+    customColor?: string;    // Color config for custom nodes
+    customIcon?: string;     // Icon config for custom nodes
     [key: string]: unknown;
   };
 }

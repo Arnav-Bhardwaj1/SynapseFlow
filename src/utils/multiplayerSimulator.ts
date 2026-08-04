@@ -53,9 +53,12 @@ export function useMultiplayerSimulator(
     if (!isSimulating) return;
 
     const registerTimeout = (fn: () => void, ms: number) => {
+      if (!isSimulatingRef.current) return 0;
       const handle = window.setTimeout(() => {
         activeTimersRef.current = activeTimersRef.current.filter(t => t !== handle);
-        fn();
+        if (isSimulatingRef.current) {
+          fn();
+        }
       }, ms);
       activeTimersRef.current.push(handle);
       return handle;
