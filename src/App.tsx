@@ -17,6 +17,7 @@ import { TestSuiteLab } from './components/TestSuiteLab';
 import { AstExplorer } from './components/AstExplorer';
 import { VisualDiffLab } from './components/VisualDiffLab';
 import { SubgraphModuleStudio } from './components/SubgraphModuleStudio';
+import { EventStreamStudio } from './components/EventStreamStudio';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -28,6 +29,7 @@ function AppWorkspace() {
   const [isAstExplorerOpen, setIsAstExplorerOpen] = useState(false);
   const [isDiffLabOpen, setIsDiffLabOpen] = useState(false);
   const [isSubgraphStudioOpen, setIsSubgraphStudioOpen] = useState(false);
+  const [isStreamStudioOpen, setIsStreamStudioOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -50,6 +52,8 @@ function AppWorkspace() {
         isDiffLabActive={isDiffLabOpen}
         onToggleSubgraphStudio={() => setIsSubgraphStudioOpen(prev => !prev)}
         isSubgraphStudioActive={isSubgraphStudioOpen}
+        onToggleStreamStudio={() => setIsStreamStudioOpen(prev => !prev)}
+        isStreamStudioActive={isStreamStudioOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -81,6 +85,9 @@ function AppWorkspace() {
 
       {/* Subgraph Composability Studio Modal */}
       <SubgraphModuleStudio isOpen={isSubgraphStudioOpen} onClose={() => setIsSubgraphStudioOpen(false)} />
+
+      {/* Distributed Event Stream & Message Bus Studio */}
+      <EventStreamStudio isOpen={isStreamStudioOpen} onClose={() => setIsStreamStudioOpen(false)} />
 
       {/* Graph Analytics & Optimization Lab Slide-over */}
       <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />

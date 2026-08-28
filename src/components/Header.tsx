@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare, Radio } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -17,6 +17,8 @@ interface HeaderProps {
   isDiffLabActive: boolean;
   onToggleSubgraphStudio?: () => void;
   isSubgraphStudioActive?: boolean;
+  onToggleStreamStudio?: () => void;
+  isStreamStudioActive?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -33,7 +35,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleDiffLab,
   isDiffLabActive,
   onToggleSubgraphStudio,
-  isSubgraphStudioActive
+  isSubgraphStudioActive,
+  onToggleStreamStudio,
+  isStreamStudioActive
 }) => {
   const {
     executionState,
@@ -239,6 +243,21 @@ export const Header: React.FC<HeaderProps> = ({
           <GitCompare className={`h-4 w-4 ${isDiffLabActive ? 'animate-pulse text-cyan-400' : 'text-slate-400'}`} />
           <span>Diff Engine</span>
         </button>
+
+        {/* Stream Studio Toggle Button */}
+        {onToggleStreamStudio && (
+          <button
+            onClick={onToggleStreamStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+              isStreamStudioActive
+                ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-lg shadow-emerald-500/10'
+                : 'bg-slate-900/80 border-cyber-border hover:border-emerald-400/50 text-slate-300 hover:bg-slate-900'
+            }`}
+          >
+            <Radio className={`h-4 w-4 ${isStreamStudioActive ? 'animate-pulse text-emerald-400' : 'text-slate-400'}`} />
+            <span>Stream Studio</span>
+          </button>
+        )}
 
         {/* Debugger Active Badge */}
         <div className="hidden lg:flex items-center gap-3 bg-slate-950/80 border border-cyber-border/40 py-1.5 px-3 rounded-full">
