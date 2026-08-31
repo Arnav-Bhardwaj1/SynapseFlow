@@ -18,6 +18,7 @@ import { AstExplorer } from './components/AstExplorer';
 import { VisualDiffLab } from './components/VisualDiffLab';
 import { SubgraphModuleStudio } from './components/SubgraphModuleStudio';
 import { EventStreamStudio } from './components/EventStreamStudio';
+import { NeuralComputeStudio } from './components/NeuralComputeStudio';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -30,6 +31,7 @@ function AppWorkspace() {
   const [isDiffLabOpen, setIsDiffLabOpen] = useState(false);
   const [isSubgraphStudioOpen, setIsSubgraphStudioOpen] = useState(false);
   const [isStreamStudioOpen, setIsStreamStudioOpen] = useState(false);
+  const [isNeuralStudioOpen, setIsNeuralStudioOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -54,6 +56,8 @@ function AppWorkspace() {
         isSubgraphStudioActive={isSubgraphStudioOpen}
         onToggleStreamStudio={() => setIsStreamStudioOpen(prev => !prev)}
         isStreamStudioActive={isStreamStudioOpen}
+        onToggleNeuralStudio={() => setIsNeuralStudioOpen(prev => !prev)}
+        isNeuralStudioActive={isNeuralStudioOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -88,6 +92,9 @@ function AppWorkspace() {
 
       {/* Distributed Event Stream & Message Bus Studio */}
       <EventStreamStudio isOpen={isStreamStudioOpen} onClose={() => setIsStreamStudioOpen(false)} />
+
+      {/* Neural & Tensor Computational Graph Studio */}
+      <NeuralComputeStudio isOpen={isNeuralStudioOpen} onClose={() => setIsNeuralStudioOpen(false)} />
 
       {/* Graph Analytics & Optimization Lab Slide-over */}
       <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />

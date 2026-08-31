@@ -19,6 +19,8 @@ interface HeaderProps {
   isSubgraphStudioActive?: boolean;
   onToggleStreamStudio?: () => void;
   isStreamStudioActive?: boolean;
+  onToggleNeuralStudio?: () => void;
+  isNeuralStudioActive?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -37,7 +39,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSubgraphStudio,
   isSubgraphStudioActive,
   onToggleStreamStudio,
-  isStreamStudioActive
+  isStreamStudioActive,
+  onToggleNeuralStudio,
+  isNeuralStudioActive
 }) => {
   const {
     executionState,
@@ -256,6 +260,21 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Radio className={`h-4 w-4 ${isStreamStudioActive ? 'animate-pulse text-emerald-400' : 'text-slate-400'}`} />
             <span>Stream Studio</span>
+          </button>
+        )}
+
+        {/* Neural Compute Studio Toggle Button */}
+        {onToggleNeuralStudio && (
+          <button
+            onClick={onToggleNeuralStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+              isNeuralStudioActive
+                ? 'bg-purple-500/20 border-purple-400 text-purple-300 shadow-lg shadow-purple-500/10'
+                : 'bg-slate-900/80 border-cyber-border hover:border-purple-400/50 text-slate-300 hover:bg-slate-900'
+            }`}
+          >
+            <Brain className={`h-4 w-4 ${isNeuralStudioActive ? 'animate-pulse text-purple-400' : 'text-slate-400'}`} />
+            <span>Neural Compute</span>
           </button>
         )}
 
