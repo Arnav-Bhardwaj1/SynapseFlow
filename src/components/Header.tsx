@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare, Radio } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare, Radio, Server } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -21,6 +21,8 @@ interface HeaderProps {
   isStreamStudioActive?: boolean;
   onToggleNeuralStudio?: () => void;
   isNeuralStudioActive?: boolean;
+  onToggleMeshStudio?: () => void;
+  isMeshStudioActive?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -41,7 +43,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleStreamStudio,
   isStreamStudioActive,
   onToggleNeuralStudio,
-  isNeuralStudioActive
+  isNeuralStudioActive,
+  onToggleMeshStudio,
+  isMeshStudioActive
 }) => {
   const {
     executionState,
@@ -275,6 +279,21 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Brain className={`h-4 w-4 ${isNeuralStudioActive ? 'animate-pulse text-purple-400' : 'text-slate-400'}`} />
             <span>Neural Compute</span>
+          </button>
+        )}
+
+        {/* Service Mesh Studio Toggle Button */}
+        {onToggleMeshStudio && (
+          <button
+            onClick={onToggleMeshStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+              isMeshStudioActive
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                : 'bg-slate-900/80 border-cyber-border hover:border-cyan-400/50 text-slate-300 hover:bg-slate-900'
+            }`}
+          >
+            <Server className={`h-4 w-4 ${isMeshStudioActive ? 'animate-pulse text-cyan-400' : 'text-slate-400'}`} />
+            <span>Cloud Mesh</span>
           </button>
         )}
 
