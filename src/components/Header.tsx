@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../context/GraphContext';
-import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare, Radio, Server } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Trash2, Layers, Brain, Cpu, Clock, Beaker, Binary, GitCompare, Radio, Server, Atom } from 'lucide-react';
 
 interface HeaderProps {
   onToggleAnalytics: () => void;
@@ -23,6 +23,8 @@ interface HeaderProps {
   isNeuralStudioActive?: boolean;
   onToggleMeshStudio?: () => void;
   isMeshStudioActive?: boolean;
+  onToggleQuantumStudio?: () => void;
+  isQuantumStudioActive?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -45,7 +47,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleNeuralStudio,
   isNeuralStudioActive,
   onToggleMeshStudio,
-  isMeshStudioActive
+  isMeshStudioActive,
+  onToggleQuantumStudio,
+  isQuantumStudioActive
 }) => {
   const {
     executionState,
@@ -294,6 +298,21 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Server className={`h-4 w-4 ${isMeshStudioActive ? 'animate-pulse text-cyan-400' : 'text-slate-400'}`} />
             <span>Cloud Mesh</span>
+          </button>
+        )}
+
+        {/* Quantum Circuit Lab Toggle Button */}
+        {onToggleQuantumStudio && (
+          <button
+            onClick={onToggleQuantumStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-lg border transition-all duration-300 cursor-pointer ${
+              isQuantumStudioActive
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                : 'bg-slate-900/80 border-cyber-border hover:border-cyan-400/50 text-slate-300 hover:bg-slate-900'
+            }`}
+          >
+            <Atom className={`h-4 w-4 ${isQuantumStudioActive ? 'animate-spin-slow text-cyan-400' : 'text-slate-400'}`} />
+            <span>Quantum Studio</span>
           </button>
         )}
 

@@ -20,6 +20,7 @@ import { SubgraphModuleStudio } from './components/SubgraphModuleStudio';
 import { EventStreamStudio } from './components/EventStreamStudio';
 import { NeuralComputeStudio } from './components/NeuralComputeStudio';
 import { ServiceMeshStudio } from './components/ServiceMeshStudio';
+import { QuantumCircuitLab } from './components/QuantumCircuitLab';
 
 function AppWorkspace() {
   const graph = useGraph();
@@ -34,6 +35,7 @@ function AppWorkspace() {
   const [isStreamStudioOpen, setIsStreamStudioOpen] = useState(false);
   const [isNeuralStudioOpen, setIsNeuralStudioOpen] = useState(false);
   const [isMeshStudioOpen, setIsMeshStudioOpen] = useState(false);
+  const [isQuantumStudioOpen, setIsQuantumStudioOpen] = useState(false);
 
   // Spin up active bot synchronization loop timers
   useMultiplayerSimulator(graph, multiplayer);
@@ -62,6 +64,8 @@ function AppWorkspace() {
         isNeuralStudioActive={isNeuralStudioOpen}
         onToggleMeshStudio={() => setIsMeshStudioOpen(prev => !prev)}
         isMeshStudioActive={isMeshStudioOpen}
+        onToggleQuantumStudio={() => setIsQuantumStudioOpen(prev => !prev)}
+        isQuantumStudioActive={isQuantumStudioOpen}
       />
 
       {/* 2. Middle Interactive Graph Workspace Grid */}
@@ -102,6 +106,9 @@ function AppWorkspace() {
 
       {/* Distributed Service Mesh & Microservices Studio */}
       <ServiceMeshStudio isOpen={isMeshStudioOpen} onClose={() => setIsMeshStudioOpen(false)} />
+
+      {/* Quantum Circuit & State Vector Simulator Studio */}
+      {isQuantumStudioOpen && <QuantumCircuitLab onClose={() => setIsQuantumStudioOpen(false)} />}
 
       {/* Graph Analytics & Optimization Lab Slide-over */}
       <GraphAnalyticsLab isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />
